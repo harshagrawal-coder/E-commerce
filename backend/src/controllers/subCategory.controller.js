@@ -8,59 +8,49 @@ export const addSubCategory = async (req, res) => {
 
     try {
         const { name, description, category } = req.body;
-
         if (!category) {
             return res.status(400).json({
                 success: false,
                 message: "Category is required"
             });
         }
-
         const existingCategory = await Category.findById(category);
-
         if (!existingCategory) {
             return res.status(404).json({
                 success: false,
                 message: "Category not found"
             });
         }
-
         if (!name) {
             return res.status(400).json({
                 success: false,
                 message: "Sub-category name is required"
             });
         }
-
         if (!req.file) {
             return res.status(400).json({
                 success: false,
                 message: "Sub-category image is required"
             });
         }
-
         const slug = slugify(name, {
             lower: true,
             strict: true,
             trim: true
         });
         const existingSubCategory = await SubCategory.findOne({ slug });
-
         if (existingSubCategory) {
             return res.status(409).json({
                 success: false,
                 message: "Sub-category already exists"
             });
         }
-
         const uploadedImage = await uploadFile({
             file: req.file.buffer,
             fileName: req.file.originalname,
             folder: "/subcategories"
         });
-
         uploadedFileId = uploadedImage.file.fileId;
-
         const subCategory = await SubCategory.create({
             name,
             slug,
