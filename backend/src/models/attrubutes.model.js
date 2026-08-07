@@ -14,11 +14,6 @@ const attributeSchema = new mongoose.Schema(
             lowercase: true,
             trim: true
         },
-        description: {
-            type: String,
-            trim: true,
-            default: ""
-        },
         inputType: {
             type: String,
             enum: [

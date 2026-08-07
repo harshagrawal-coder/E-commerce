@@ -3,34 +3,28 @@ import Attribute from "../models/attrubutes.model.js";
 
 export const addAttribute = async (req, res) => {
     try {
-        const { name, description, inputType, isVariant, isFilterable, isRequired, isActive, displayOrder } = req.body;
-
+        const { name, inputType, isVariant, isFilterable, isRequired, isActive, displayOrder } = req.body;
         if (!name) {
             return res.status(400).json({
                 success: false,
                 message: "Attribute name is required"
             });
         }
-
         const slug = slugify(name, {
             lower: true,
             strict: true,
             trim: true
         });
-
         const existingAttribute = await Attribute.findOne({ slug });
-
         if (existingAttribute) {
             return res.status(409).json({
                 success: false,
                 message: "Attribute already exists"
             });
         }
-
         const attribute = await Attribute.create({
             name,
             slug,
-            description,
             inputType,
             isVariant,
             isFilterable,
@@ -38,13 +32,11 @@ export const addAttribute = async (req, res) => {
             isActive,
             displayOrder
         });
-
         return res.status(201).json({
             success: true,
             message: "Attribute created successfully",
             data: attribute
         });
-
     } catch (error) {
         return res.status(500).json({
             success: false,
@@ -52,7 +44,6 @@ export const addAttribute = async (req, res) => {
         });
     }
 };
-
 export const getAttribute = async (req, res) => {
     try {
         const attributes = await Attribute.find();
@@ -68,10 +59,9 @@ export const getAttribute = async (req, res) => {
         });
     }
 };
-
 export const updateAttribute = async (req, res) => {
     try {
-        const { name, description, inputType, isVariant, isFilterable, isRequired, isActive, displayOrder } = req.body;
+        const { name,inputType, isVariant, isFilterable, isRequired, isActive, displayOrder } = req.body;
         const attribute = await Attribute.findById(req.params.id);
 
         if (!attribute) {
@@ -80,14 +70,12 @@ export const updateAttribute = async (req, res) => {
                 message: "Attribute not found"
             });
         }
-
         if (name) {
             const slug = slugify(name, {
                 lower: true,
                 strict: true,
                 trim: true
             });
-
             const existingAttribute = await Attribute.findOne({ slug });
 
             if (existingAttribute && existingAttribute._id.toString() !== attribute._id.toString()) {
@@ -100,11 +88,6 @@ export const updateAttribute = async (req, res) => {
             attribute.name = name;
             attribute.slug = slug;
         }
-
-        if (description !== undefined) {
-            attribute.description = description;
-        }
-
         if (inputType !== undefined) {
             attribute.inputType = inputType;
         }

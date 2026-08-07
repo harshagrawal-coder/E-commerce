@@ -1,21 +1,16 @@
 import slugify from "slugify";
 import Brand from "../models/brand.model.js";
-import { uploadFile, deleteFile } from "../services/imagekit.js";
+import SubCategory from "../models/subCategory.model.js";
+
 export const addBrand = async (req, res) => {
-    let uploadedFileId = null;
     try {
-        const { name, description } = req.body;
+        const { name, isActive } = req.body;
+        const subCategories = req.body.subCategories || [];
         // Validate input
         if (!name) {
             return res.status(400).json({
                 success: false,
                 message: "Brand name is required"
-            });
-        }
-        if (!req.file) {
-            return res.status(400).json({
-                success: false,
-                message: "Brand image is required"
             });
         }
         // Generate slug
@@ -32,23 +27,25 @@ export const addBrand = async (req, res) => {
                 message: "Brand already exists"
             });
         }
-        // Upload image to ImageKit
-        const uploadedImage = await uploadFile({
-            file: req.file.buffer,
-            fileName: req.file.originalname,
-            folder: "/brands"
-        });
-        uploadedFileId = uploadedImage.file.fileId;
+        // Validate sub categories
+        if (subCategories.length) {
+            const subCategoriesCount = await SubCategory.countDocuments({
+                _id: { $in: subCategories }
+            });
+            if (subCategoriesCount !== subCategories.length) {
+                return res.status(404).json({
+                    success: false,
+                    message: "One or more sub-categories not found"
+                });
+            }
+        }
+        
         // Create Brand
         const brand = await Brand.create({
             name,
             slug,
-            description,
-            image: {
-                url: uploadedImage.file.url,
-                fileId: uploadedImage.file.fileId,
-                alt: name
-            }
+            subCategories,
+            isActive
         });
 
         return res.status(201).json({
@@ -59,11 +56,6 @@ export const addBrand = async (req, res) => {
 
     } catch (error) {
 
-        // Rollback uploaded image
-        if (uploadedFileId) {
-            await deleteFile(uploadedFileId);
-        }
-
         return res.status(500).json({
             success: false,
             message: error.message
@@ -71,7 +63,7 @@ export const addBrand = async (req, res) => {
     }
 };
 export const getBrand = async (req, res) => {
-    const brands = await Brand.find()
+    const brands = await Brand.find().populate("subCategories", "name slug");
     return res.status(200).json({
         success: true,
         message: "Brands fetched successfully",
@@ -79,10 +71,9 @@ export const getBrand = async (req, res) => {
     })
 }
 export const updateBrand = async (req, res) => {
-    let uploadedFileId = null;
-
     try {
-        const { name, description } = req.body;
+        const { name, isActive } = req.body;
+        const subCategories = req.body.subCategories || [];
         const brand = await Brand.findById(req.params.id);
 
         if (!brand) {
@@ -112,30 +103,21 @@ export const updateBrand = async (req, res) => {
             brand.slug = slug;
         }
 
-        if (description !== undefined) {
-            brand.description = description;
+        if (subCategories.length) {
+            const subCategoriesCount = await SubCategory.countDocuments({
+                _id: { $in: subCategories }
+            });
+            if (subCategoriesCount !== subCategories.length) {
+                return res.status(404).json({
+                    success: false,
+                    message: "One or more sub-categories not found"
+                });
+            }
+            brand.subCategories = subCategories;
         }
 
-        if (req.file) {
-            const oldFileId = brand.image.fileId;
-
-            const uploadedImage = await uploadFile({
-                file: req.file.buffer,
-                fileName: req.file.originalname,
-                folder: "/brands"
-            });
-
-            uploadedFileId = uploadedImage.file.fileId;
-
-            brand.image = {
-                url: uploadedImage.file.url,
-                fileId: uploadedImage.file.fileId,
-                alt: name || brand.name
-            };
-
-            if (oldFileId) {
-                await deleteFile(oldFileId);
-            }
+        if (isActive !== undefined) {
+            brand.isActive = isActive;
         }
 
         await brand.save();
@@ -147,10 +129,6 @@ export const updateBrand = async (req, res) => {
         });
 
     } catch (error) {
-
-        if (uploadedFileId) {
-            await deleteFile(uploadedFileId);
-        }
 
         return res.status(500).json({
             success: false,
@@ -167,10 +145,6 @@ export const deleteBrand = async (req, res) => {
                 success: false,
                 message: "Brand not found"
             });
-        }
-
-        if (brand.image.fileId) {
-            await deleteFile(brand.image.fileId);
         }
 
         await Brand.findByIdAndDelete(req.params.id);

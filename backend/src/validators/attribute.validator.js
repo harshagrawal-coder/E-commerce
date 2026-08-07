@@ -12,10 +12,6 @@ export const addAttributeValidation = [
         .trim()
         .isLength({ min: 2 }).withMessage("Attribute name must be at least 2 characters")
         .isLength({ max: 50 }).withMessage("Attribute name must not exceed 50 characters"),
-    body("description")
-        .optional()
-        .trim()
-        .isLength({ max: 500 }).withMessage("Description must not exceed 500 characters"),
     body("inputType")
         .optional()
         .isIn(["select", "multiselect", "text", "number", "boolean"]).withMessage("Invalid input type"),
@@ -43,10 +39,6 @@ export const updateAttributeValidation = [
         .trim()
         .isLength({ min: 2 }).withMessage("Attribute name must be at least 2 characters")
         .isLength({ max: 50 }).withMessage("Attribute name must not exceed 50 characters"),
-    body("description")
-        .optional()
-        .trim()
-        .isLength({ max: 500 }).withMessage("Description must not exceed 500 characters"),
     body("inputType")
         .optional()
         .isIn(["select", "multiselect", "text", "number", "boolean"]).withMessage("Invalid input type"),

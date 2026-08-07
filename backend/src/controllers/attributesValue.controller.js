@@ -1,32 +1,26 @@
 import slugify from "slugify";
 import AttributeValue from "../models/attributesValue.model.js";
-
 export const addAttributeValue = async (req, res) => {
     try {
         const { attribute, value, displayOrder, isDefault, isActive } = req.body;
-
         if (!attribute || !value) {
             return res.status(400).json({
                 success: false,
                 message: "Attribute and value are required"
             });
         }
-
         const slug = slugify(value, {
             lower: true,
             strict: true,
             trim: true
         });
-
         const existingAttributeValue = await AttributeValue.findOne({ attribute, value });
-
         if (existingAttributeValue) {
             return res.status(409).json({
                 success: false,
                 message: "Attribute value already exists for this attribute"
             });
         }
-
         const attributeValue = await AttributeValue.create({
             attribute,
             value,

@@ -1,13 +1,61 @@
 import slugify from "slugify";
 import Category from "../models/category.model.js";
+import Attribute from "../models/attrubutes.model.js";
+import AttributeValue from "../models/attributesValue.model.js";
 import SubCategory from "../models/subCategory.model.js";
 import { uploadFile, deleteFile } from "../services/imagekit.js";
 
+const parseAllowedAttributes = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    try {
+        return JSON.parse(value);
+    } catch {
+        throw new Error("Invalid allowedAttributes format");
+    }
+};
+const validateAllowedAttributes = async (allowedAttributes) => {
+    if (!Array.isArray(allowedAttributes)) {
+        throw new Error("allowedAttributes must be an array");
+    }
+
+    const duplicate = allowedAttributes.some(
+        (item, index) =>
+            allowedAttributes.findIndex(
+                attr => attr.attribute.toString() === item.attribute.toString()
+            ) !== index
+    );
+
+    if (duplicate) {
+        throw new Error("Duplicate attribute found");
+    }
+    for (const item of allowedAttributes) {
+        if (!item.attribute) {
+            throw new Error("Attribute id is required");
+        }
+        const attribute = await Attribute.findById(item.attribute);
+        if (!attribute) {
+            throw new Error(`Attribute ${item.attribute} not found`);
+        }
+
+        if (item.allowedValues && item.allowedValues.length) {
+            const values = await AttributeValue.find({
+                _id: { $in: item.allowedValues },
+                attribute: item.attribute
+            });
+
+            if (values.length !== item.allowedValues.length) {
+                throw new Error(`Invalid allowedValues for attribute ${item.attribute}`);
+            }
+        }
+    }
+};
 export const addSubCategory = async (req, res) => {
     let uploadedFileId = null;
-
     try {
         const { name, description, category } = req.body;
+        const allowedAttributes = parseAllowedAttributes(req.body.allowedAttributes);
+
         if (!category) {
             return res.status(400).json({
                 success: false,
@@ -60,7 +108,8 @@ export const addSubCategory = async (req, res) => {
                 url: uploadedImage.file.url,
                 fileId: uploadedImage.file.fileId,
                 alt: name
-            }
+            },
+            allowedAttributes
         });
 
         return res.status(201).json({
@@ -82,7 +131,16 @@ export const addSubCategory = async (req, res) => {
     }
 };
 export const getSubCategory = async (req, res) => {
-    const subCategories = await SubCategory.find().populate("category", "name slug")
+    const subCategories = await SubCategory.find()
+        .populate("category", "name slug")
+        .populate({
+            path: "allowedAttributes.attribute",
+            model: Attribute
+        })
+        .populate({
+            path: "allowedAttributes.allowedValues",
+            model: AttributeValue
+        });
     return res.status(200).json({
         success: true,
         message: "Sub-categories fetched successfully",
@@ -94,6 +152,7 @@ export const updateSubCategory = async (req, res) => {
 
     try {
         const { name, description, category } = req.body;
+        const allowedAttributes = parseAllowedAttributes(req.body.allowedAttributes);
         const subCategory = await SubCategory.findById(req.params.id);
 
         if (!subCategory) {
@@ -104,7 +163,8 @@ export const updateSubCategory = async (req, res) => {
         }
 
         if (name) {
-            const slug = slugify(name, {
+        await validateAllowedAttributes(allowedAttributes);
+        const slug = slugify(name, {
                 lower: true,
                 strict: true,
                 trim: true
@@ -138,6 +198,11 @@ export const updateSubCategory = async (req, res) => {
             }
 
             subCategory.category = category;
+        }
+
+        if (allowedAttributes.length) {
+            await validateAllowedAttributes(allowedAttributes);
+            subCategory.allowedAttributes = allowedAttributes;
         }
 
         if (req.file) {

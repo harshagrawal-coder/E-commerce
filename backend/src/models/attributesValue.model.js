@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-
 const attributeValueSchema = new mongoose.Schema(
     {
         attribute: {
