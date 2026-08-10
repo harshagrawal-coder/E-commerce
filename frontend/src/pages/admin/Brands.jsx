@@ -1,127 +1,141 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Plus } from 'lucide-react'
-import PageHeader from '../../components/ui/PageHeader'
-import Button from '../../components/ui/Button'
-import DataTable from '../../components/ui/DataTable'
-import Modal from '../../components/ui/Modal'
-import Input from '../../components/ui/Input'
-import Checkbox from '../../components/ui/Checkbox'
-import Badge from '../../components/ui/Badge'
-import ConfirmDialog from '../../components/ui/ConfirmDialog'
-import ErrorAlert from '../../components/ui/ErrorAlert'
-import api from '../../services/api'
-
-const emptyForm = { name: '', subCategories: [], isActive: true }
+import { useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
+import PageHeader from "../../components/ui/PageHeader";
+import Button from "../../components/ui/Button";
+import DataTable from "../../components/ui/DataTable";
+import Modal from "../../components/ui/Modal";
+import Input from "../../components/ui/Input";
+import Checkbox from "../../components/ui/Checkbox";
+import Badge from "../../components/ui/Badge";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import ErrorAlert from "../../components/ui/ErrorAlert";
+import {
+  fetchbrandData,
+  createBrand,
+  updateBranddata,
+  deleteBranddata,
+} from "../../store/slices/brand.slice";
+import { fetchSubCategoryData } from "../../store/slices/subCategorySlice";
+import { useDispatch, useSelector } from "react-redux";
+const emptyForm = { name: "", subCategories: [], isActive: true };
 
 function Brands() {
-  const [rows, setRows] = useState([])
-  const [subCategories, setSubCategories] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState(emptyForm)
-  const [saving, setSaving] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState(null)
-  const [deleting, setDeleting] = useState(false)
-  const [error, setError] = useState('')
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [data, subData] = await Promise.all([api('/brand'), api('/subcategory')])
-      setRows(data.data ?? data.brands ?? [])
-      setSubCategories(subData.data ?? subData.subCategories ?? [])
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    const load = async () => {
-      await fetchData()
-    }
-    load()
-  }, [fetchData])
-
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const dispatch = useDispatch();
+  const { data: subCategories } = useSelector((state) => state.subCategory);
+  const { data: rows, loading, error } = useSelector((state) => state.brand);
   const openAdd = () => {
-    setEditing(null)
-    setForm(emptyForm)
-    setError('')
-    setModalOpen(true)
-  }
+    setEditing(null);
+    setForm(emptyForm);
+    setModalOpen(true);
+  };
 
   const openEdit = (row) => {
-    setEditing(row)
+    setEditing(row);
     setForm({
-      name: row.name || '',
+      name: row.name || "",
       subCategories: (row.subCategories || []).map((s) => s._id ?? s),
       isActive: row.isActive ?? true,
-    })
-    setError('')
-    setModalOpen(true)
-  }
+    });
+    setModalOpen(true);
+  };
 
   const toggleSubCategory = (id) => {
     setForm((p) => {
-      const exists = p.subCategories.includes(id)
+      const exists = p.subCategories.includes(id);
       return {
         ...p,
         subCategories: exists
           ? p.subCategories.filter((s) => s !== id)
           : [...p.subCategories, id],
-      }
-    })
-  }
+      };
+    });
+  };
+  useEffect(() => {
+    dispatch(fetchbrandData());
+    dispatch(fetchSubCategoryData());
+  }, [dispatch]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setSaving(true)
+    e.preventDefault();
+    setSaving(true);
+
+    const data = {
+      name: form.name,
+      subCategories: form.subCategories,
+      isActive: form.isActive,
+    };
+
     try {
-      const body = { name: form.name, subCategories: form.subCategories, isActive: form.isActive }
       if (editing) {
-        await api(`/brand/${editing._id}`, { method: 'PUT', body })
+        await dispatch(
+          updateBranddata({ data, id: editing._id }),
+        ).unwrap();
       } else {
-        await api('/brand', { method: 'POST', body })
+        await dispatch(createBrand(data)).unwrap();
       }
-      setModalOpen(false)
-      fetchData()
-    } catch (err) {
-      setError(err.message)
+
+      setModalOpen(false);
+      setEditing(null);
+      setForm(emptyForm);
+    } catch (error) {
+      console.log(error);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
-    if (!deleteTarget) return
-    setDeleting(true)
+    if (!deleteTarget) return;
+    setDeleting(true);
+
     try {
-      await api(`/brand/${deleteTarget._id}`, { method: 'DELETE' })
-      setDeleteTarget(null)
-      fetchData()
-    } catch (err) {
-      setError(err.message)
+      await dispatch(deleteBranddata(deleteTarget._id)).unwrap();
+      setDeleteTarget(null);
+    } catch (error) {
+      console.log(error);
     } finally {
-      setDeleting(false)
+      setDeleting(false);
     }
-  }
+  };
+
+  const subCategoryMap = useMemo(
+    () =>
+      subCategories.reduce(
+        (acc, sub) => ({ ...acc, [sub._id]: sub }),
+        {},
+      ),
+    [subCategories],
+  );
 
   const columns = [
-    { key: 'name', header: 'Name', render: (row) => <span className="font-medium text-ink">{row.name}</span> },
-    { key: 'slug', header: 'Slug' },
     {
-      key: 'subCategories',
-      header: 'Sub Categories',
+      key: "name",
+      header: "Name",
+      render: (row) => <span className="font-medium text-ink">{row.name}</span>,
+    },
+    { key: "slug", header: "Slug" },
+    {
+      key: "subCategories",
+      header: "Sub Categories",
       render: (row) => (
         <div className="flex max-w-xs flex-wrap gap-1">
-          {(row.subCategories || []).length === 0 && <span className="text-ink-muted">-</span>}
-          {(row.subCategories || []).slice(0, 3).map((s) => (
-            <Badge key={s._id ?? s} tone="blue">
-              {s.name ?? s}
-            </Badge>
-          ))}
+          {(row.subCategories || []).length === 0 && (
+            <span className="text-ink-muted">-</span>
+          )}
+          {(row.subCategories || []).slice(0, 3).map((s) => {
+            const sub = typeof s === "object" ? s : subCategoryMap[s];
+            return (
+              <Badge key={sub?._id ?? s} tone="blue">
+                {sub?.name ?? s}
+              </Badge>
+            );
+          })}
           {(row.subCategories || []).length > 3 && (
             <Badge>+{(row.subCategories || []).length - 3}</Badge>
           )}
@@ -129,12 +143,16 @@ function Brands() {
       ),
     },
     {
-      key: 'isActive',
-      header: 'Status',
+      key: "isActive",
+      header: "Status",
       render: (row) =>
-        row.isActive ? <Badge tone="green">Active</Badge> : <Badge tone="red">Inactive</Badge>,
+        row.isActive ? (
+          <Badge tone="green">Active</Badge>
+        ) : (
+          <Badge tone="red">Inactive</Badge>
+        ),
     },
-  ]
+  ];
 
   return (
     <div className="space-y-6">
@@ -163,14 +181,18 @@ function Brands() {
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editing ? 'Edit Brand' : 'Add Brand'}
+        title={editing ? "Edit Brand" : "Add Brand"}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setModalOpen(false)} disabled={saving}>
+            <Button
+              variant="secondary"
+              onClick={() => setModalOpen(false)}
+              disabled={saving}
+            >
               Cancel
             </Button>
             <Button type="submit" form="brand-form" loading={saving}>
-              {saving ? 'Saving...' : 'Save'}
+              {saving ? "Saving..." : "Save"}
             </Button>
           </>
         }
@@ -186,10 +208,14 @@ function Brands() {
           />
 
           <div>
-            <span className="mb-2 block text-sm font-medium text-ink">Sub Categories</span>
+            <span className="mb-2 block text-sm font-medium text-ink">
+              Sub Categories
+            </span>
             <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-border bg-surface p-3">
               {subCategories.length === 0 && (
-                <p className="text-sm text-ink-muted">No sub categories available</p>
+                <p className="text-sm text-ink-muted">
+                  No sub categories available
+                </p>
               )}
               {subCategories.map((sub) => (
                 <label
@@ -211,7 +237,9 @@ function Brands() {
           <Checkbox
             id="isActive"
             checked={form.isActive}
-            onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, isActive: e.target.checked }))
+            }
             label="Active"
           />
         </form>
@@ -226,7 +254,7 @@ function Brands() {
         message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
       />
     </div>
-  )
+  );
 }
 
-export default Brands
+export default Brands;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, User, Phone, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import AuthLayout from "../../components/auth/AuthLayout";
 import PasswordStrength from "../../components/auth/PasswordStrength";
 import Button from "../../components/ui/Button";
@@ -9,15 +9,14 @@ import Checkbox from "../../components/ui/Checkbox";
 import Divider from "../../components/ui/Divider";
 import ErrorAlert from "../../components/ui/ErrorAlert";
 import GoogleIcon from "../../components/auth/GoogleIcon";
-import { config } from "../../config/config";
-
+import { useDispatch, useSelector } from "react-redux";
+import { registerUser } from "../../store/slices/authSlices";
 function Register() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
+    name: "",
     email: "",
-    phone: "",
     password: "",
     confirmPassword: "",
   });
@@ -25,28 +24,20 @@ function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
+  const { user, loading, error } = useSelector((state) => state.auth);
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
-
   const validate = () => {
     const next = {};
-    if (!form.firstName.trim()) next.firstName = "First name is required";
-    if (!form.lastName.trim()) next.lastName = "Last name is required";
+    if (!form.name.trim()) next.name = "Name is required";
+    else if (form.name.trim().length < 3) next.name = "Name must be at least 3 characters";
     if (!form.email) {
       next.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       next.email = "Enter a valid email address";
-    }
-    if (!form.phone) {
-      next.phone = "Phone number is required";
-    } else if (!/^\+?[0-9\s-]{8,15}$/.test(form.phone)) {
-      next.phone = "Enter a valid phone number";
     }
     if (!form.password) {
       next.password = "Password is required";
@@ -68,31 +59,11 @@ function Register() {
     const next = validate();
     setErrors(next);
     if (Object.keys(next).length) return;
-
-    setError("");
-    setLoading(true);
-    try {
-      const res = await fetch(`${config.API_URI}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
-          email: form.email,
-          password: form.password,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Registration failed");
-      }
-      localStorage.setItem(config.TOKEN_KEY, data.token);
-      localStorage.setItem(config.USER_KEY, JSON.stringify(data.user));
-      navigate("/login");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    await dispatch(registerUser({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+    }));
   };
 
   return (
@@ -110,32 +81,18 @@ function Register() {
         <ErrorAlert message={error} className="mb-6" />
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              id="firstName"
-              name="firstName"
-              type="text"
-              label="First Name"
-              placeholder="John"
-              autoComplete="given-name"
-              value={form.firstName}
-              onChange={handleChange}
-              error={errors.firstName}
-              icon={<User size={16} />}
-            />
-            <Input
-              id="lastName"
-              name="lastName"
-              type="text"
-              label="Last Name"
-              placeholder="Doe"
-              autoComplete="family-name"
-              value={form.lastName}
-              onChange={handleChange}
-              error={errors.lastName}
-              icon={<User size={16} />}
-            />
-          </div>
+          <Input
+            id="name"
+            name="name"
+            type="text"
+            label="Full Name"
+            placeholder="John Doe"
+            autoComplete="name"
+            value={form.name}
+            onChange={handleChange}
+            error={errors.name}
+            icon={<User size={16} />}
+          />
 
           <Input
             id="email"
@@ -148,19 +105,6 @@ function Register() {
             onChange={handleChange}
             error={errors.email}
             icon={<Mail size={16} />}
-          />
-
-          <Input
-            id="phone"
-            name="phone"
-            type="tel"
-            label="Phone"
-            placeholder="+1 555 123 4567"
-            autoComplete="tel"
-            value={form.phone}
-            onChange={handleChange}
-            error={errors.phone}
-            icon={<Phone size={16} />}
           />
 
           <div>

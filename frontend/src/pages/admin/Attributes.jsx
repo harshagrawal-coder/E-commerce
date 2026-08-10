@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import Button from '../../components/ui/Button'
@@ -10,7 +10,6 @@ import Checkbox from '../../components/ui/Checkbox'
 import Badge from '../../components/ui/Badge'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import ErrorAlert from '../../components/ui/ErrorAlert'
-import api from '../../services/api'
 
 const inputTypes = ['select', 'multiselect', 'text', 'number', 'boolean']
 
@@ -25,8 +24,8 @@ const emptyForm = {
 }
 
 function Attributes() {
-  const [rows, setRows] = useState([])
-  const [loading, setLoading] = useState(true)
+  const rows = []
+  const loading = false
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -34,24 +33,6 @@ function Attributes() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
-
-  const fetchData = useCallback(async () => {
-    try {
-      const data = await api('/attribute')
-      setRows(data.data ?? data.attributes ?? [])
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    const load = async () => {
-      await fetchData()
-    }
-    load()
-  }, [fetchData])
 
   const openAdd = () => {
     setEditing(null)
@@ -79,33 +60,15 @@ function Attributes() {
     e.preventDefault()
     setError('')
     setSaving(true)
-    try {
-      if (editing) {
-        await api(`/attribute/${editing._id}`, { method: 'PUT', body: form })
-      } else {
-        await api('/attribute', { method: 'POST', body: form })
-      }
-      setModalOpen(false)
-      fetchData()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSaving(false)
-    }
+    setModalOpen(false)
+    setSaving(false)
   }
 
   const handleDelete = async () => {
     if (!deleteTarget) return
     setDeleting(true)
-    try {
-      await api(`/attribute/${deleteTarget._id}`, { method: 'DELETE' })
-      setDeleteTarget(null)
-      fetchData()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setDeleting(false)
-    }
+    setDeleteTarget(null)
+    setDeleting(false)
   }
 
   const columns = [

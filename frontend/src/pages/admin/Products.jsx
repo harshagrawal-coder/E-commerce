@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import Button from '../../components/ui/Button'
@@ -11,7 +11,6 @@ import Badge from '../../components/ui/Badge'
 import ImageUpload from '../../components/ui/ImageUpload'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import ErrorAlert from '../../components/ui/ErrorAlert'
-import api from '../../services/api'
 
 const emptyForm = {
   name: '',
@@ -24,12 +23,38 @@ const emptyForm = {
   variantsJson: '[]',
 }
 
+function PreviewImage({ file, onRemove, index }) {
+  const url = useMemo(() => URL.createObjectURL(file), [file])
+
+  useEffect(() => () => URL.revokeObjectURL(url), [url])
+
+  return (
+    <div className="relative">
+      <img
+        src={url}
+        alt={`Product ${index + 1}`}
+        className="h-20 w-20 rounded-xl border border-border object-cover"
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute -right-1.5 -top-1.5 rounded-full bg-red-600 p-0.5 text-white"
+        aria-label="Remove image"
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
 function Products() {
-  const [rows, setRows] = useState([])
-  const [categories, setCategories] = useState([])
-  const [subCategories, setSubCategories] = useState([])
-  const [brands, setBrands] = useState([])
-  const [loading, setLoading] = useState(true)
+  const rows = []
+  const categories = []
+  const subCategories = []
+  const brands = []
+  const loading = false
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -38,32 +63,6 @@ function Products() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [data, catData, subData, brandData] = await Promise.all([
-        api('/product'),
-        api('/category'),
-        api('/subcategory'),
-        api('/brand'),
-      ])
-      setRows(data.data ?? data.products ?? [])
-      setCategories(catData.data ?? catData.categories ?? [])
-      setSubCategories(subData.data ?? subData.subCategories ?? [])
-      setBrands(brandData.data ?? brandData.brands ?? [])
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    const load = async () => {
-      await fetchData()
-    }
-    load()
-  }, [fetchData])
 
   const openAdd = () => {
     setEditing(null)
@@ -90,16 +89,6 @@ function Products() {
     setModalOpen(true)
   }
 
-  const parseVariants = () => {
-    try {
-      const parsed = JSON.parse(form.variantsJson)
-      if (!Array.isArray(parsed)) throw new Error('Variants must be an array')
-      return parsed
-    } catch (err) {
-      throw new Error(`Invalid variants JSON: ${err.message}`, { cause: err })
-    }
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.category || !form.subCategory || !form.brand) {
@@ -108,45 +97,15 @@ function Products() {
     }
     setError('')
     setSaving(true)
-    try {
-      const variants = parseVariants()
-      const body = new FormData()
-      body.append('name', form.name)
-      body.append('description', form.description)
-      body.append('category', form.category)
-      body.append('subCategory', form.subCategory)
-      body.append('brand', form.brand)
-      body.append('isActive', form.isActive)
-      body.append('isFeatured', form.isFeatured)
-      body.append('variants', JSON.stringify(variants))
-      images.forEach((img) => body.append('images', img))
-
-      if (editing) {
-        await api(`/product/${editing._id}`, { method: 'PUT', body, isFormData: true })
-      } else {
-        await api('/product', { method: 'POST', body, isFormData: true })
-      }
-      setModalOpen(false)
-      fetchData()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSaving(false)
-    }
+    setModalOpen(false)
+    setSaving(false)
   }
 
   const handleDelete = async () => {
     if (!deleteTarget) return
     setDeleting(true)
-    try {
-      await api(`/product/${deleteTarget._id}`, { method: 'DELETE' })
-      setDeleteTarget(null)
-      fetchData()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setDeleting(false)
-    }
+    setDeleteTarget(null)
+    setDeleting(false)
   }
 
   const categoryOptions = categories.map((c) => ({ value: c._id, label: c.name }))
@@ -285,23 +244,7 @@ function Products() {
             <span className="mb-2 block text-sm font-medium text-ink">Images</span>
             <div className="flex flex-wrap gap-3">
               {images.map((img, i) => (
-                <div key={i} className="relative">
-                  <img
-                    src={URL.createObjectURL(img)}
-                    alt={`Product ${i + 1}`}
-                    className="h-20 w-20 rounded-xl border border-border object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
-                    className="absolute -right-1.5 -top-1.5 rounded-full bg-red-600 p-0.5 text-white"
-                    aria-label="Remove image"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                </div>
+                <PreviewImage key={i} file={img} onRemove={() => setImages((prev) => prev.filter((_, idx) => idx !== i))} index={i} />
               ))}
               {images.length < 6 && (
                 <ImageUpload label="" value={null} onChange={(f) => f && setImages((prev) => [...prev, f])} />

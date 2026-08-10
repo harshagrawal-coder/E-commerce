@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FolderTree, Layers, Store, Package, Boxes, SlidersHorizontal, ListChecks } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
-import api from '../../services/api'
 
 const statCards = [
   { key: 'categories', label: 'Categories', icon: FolderTree, to: '/admin/categories', color: 'bg-blue-50 text-blue-600' },
@@ -15,39 +13,8 @@ const statCards = [
 ]
 
 function Dashboard() {
-  const [counts, setCounts] = useState({})
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const loadCounts = async () => {
-      try {
-        const [categories, subCategories, brands, products, variants, attributes, attributeValues] =
-          await Promise.all([
-            api('/category'),
-            api('/subcategory'),
-            api('/brand'),
-            api('/product'),
-            api('/variant'),
-            api('/attribute'),
-            api('/attribute-value'),
-          ])
-        setCounts({
-          categories: categories.data?.length ?? 0,
-          subCategories: subCategories.data?.length ?? 0,
-          brands: brands.data?.length ?? 0,
-          products: products.data?.length ?? 0,
-          variants: variants.data?.length ?? 0,
-          attributes: attributes.data?.length ?? 0,
-          attributeValues: attributeValues.data?.length ?? 0,
-        })
-      } catch {
-        setCounts({})
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadCounts()
-  }, [])
+  const loading = false
+  const counts = {}
 
   return (
     <div className="space-y-6">

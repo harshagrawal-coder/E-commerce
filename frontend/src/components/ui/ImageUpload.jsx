@@ -1,21 +1,30 @@
-import { useRef, useState } from 'react'
-import { ImagePlus, X } from 'lucide-react'
+import { useRef, useState } from "react";
+import { ImagePlus, X } from "lucide-react";
 
-function ImageUpload({ label = 'Image', onChange, previewUrl }) {
-  const inputRef = useRef(null)
-  const [preview, setPreview] = useState(previewUrl || '')
+function ImageUpload({ label = "Image", onChange, previewUrl }) {
+  const inputRef = useRef(null);
+  const [preview, setPreview] = useState(previewUrl || "");
+  const [prevPreviewUrl, setPrevPreviewUrl] = useState(previewUrl);
+
+  if (previewUrl !== prevPreviewUrl) {
+    setPrevPreviewUrl(previewUrl);
+    setPreview(previewUrl || "");
+  }
 
   const handleFile = (file) => {
-    if (!file) return
-    onChange(file)
-    const reader = new FileReader()
-    reader.onload = () => setPreview(reader.result)
-    reader.readAsDataURL(file)
-  }
+    if (!file) return;
+    onChange(file);
+    const reader = new FileReader();
+    reader.onload = () => setPreview(reader.result);
+    reader.readAsDataURL(file);
+    if (inputRef.current) inputRef.current.value = "";
+  };
 
   return (
     <div>
-      {label && <span className="mb-2 block text-sm font-medium text-ink">{label}</span>}
+      {label && (
+        <span className="mb-2 block text-sm font-medium text-ink">{label}</span>
+      )}
       {preview ? (
         <div className="relative inline-block">
           <img
@@ -26,9 +35,9 @@ function ImageUpload({ label = 'Image', onChange, previewUrl }) {
           <button
             type="button"
             onClick={() => {
-              setPreview('')
-              onChange(null)
-              if (inputRef.current) inputRef.current.value = ''
+              setPreview("");
+              onChange(null);
+              if (inputRef.current) inputRef.current.value = "";
             }}
             aria-label="Remove image"
             className="absolute -right-2 -top-2 rounded-full bg-red-600 p-1 text-white shadow-sm transition-transform duration-200 hover:scale-110"
@@ -54,7 +63,7 @@ function ImageUpload({ label = 'Image', onChange, previewUrl }) {
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
     </div>
-  )
+  );
 }
 
-export default ImageUpload
+export default ImageUpload;

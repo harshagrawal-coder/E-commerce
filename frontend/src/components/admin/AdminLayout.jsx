@@ -15,6 +15,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import BrandLogo from '../auth/BrandLogo'
+import { config } from '../../config/config'
 
 const navGroups = [
   {
@@ -101,8 +102,8 @@ function SidebarContent({ onNavigate }) {
         <button
           type="button"
           onClick={() => {
-            localStorage.removeItem('commercehub_token')
-            localStorage.removeItem('commercehub_user')
+            localStorage.removeItem(config.TOKEN_KEY)
+            localStorage.removeItem(config.USER_KEY)
             navigate('/login')
           }}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-muted transition-colors duration-200 hover:bg-surface hover:text-red-600"

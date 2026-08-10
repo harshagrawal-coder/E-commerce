@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import Button from '../../components/ui/Button'
@@ -10,14 +10,14 @@ import Checkbox from '../../components/ui/Checkbox'
 import Badge from '../../components/ui/Badge'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import ErrorAlert from '../../components/ui/ErrorAlert'
-import api from '../../services/api'
+
 
 const emptyForm = { productId: '', sku: '', price: 0, stock: 0, isDefault: false, isActive: true, attributesJson: '[]' }
 
 function ProductVariants() {
-  const [rows, setRows] = useState([])
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
+  const rows = []
+  const products = []
+  const loading = false
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -25,36 +25,6 @@ function ProductVariants() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
-
-  const fetchData = useCallback(async () => {
-    try {
-      const productData = await api('/product')
-      setProducts(productData.data ?? productData.products ?? [])
-
-      const variants = []
-      for (const product of productData.data ?? productData.products ?? []) {
-        try {
-          const vData = await api(`/variant/product/${product._id}`)
-          const list = vData.data ?? []
-          list.forEach((v) => variants.push({ ...v, productName: product.name }))
-        } catch {
-          // skip products with no variants
-        }
-      }
-      setRows(variants)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    const load = async () => {
-      await fetchData()
-    }
-    load()
-  }, [fetchData])
 
   const openAdd = () => {
     setEditing(null)
@@ -78,17 +48,7 @@ function ProductVariants() {
     setModalOpen(true)
   }
 
-  const parseAttributes = () => {
-    try {
-      const parsed = JSON.parse(form.attributesJson)
-      if (!Array.isArray(parsed)) throw new Error('Attributes must be an array')
-      return parsed
-    } catch (err) {
-      throw new Error(`Invalid attributes JSON: ${err.message}`, { cause: err })
-    }
-  }
-
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.productId) {
       setError('Product is required')
@@ -96,41 +56,15 @@ function ProductVariants() {
     }
     setError('')
     setSaving(true)
-    try {
-      const body = {
-        sku: form.sku,
-        price: Number(form.price),
-        stock: Number(form.stock),
-        isDefault: form.isDefault,
-        isActive: form.isActive,
-        attributes: parseAttributes(),
-      }
-      if (editing) {
-        await api(`/variant/product/${form.productId}/${editing._id}`, { method: 'PUT', body })
-      } else {
-        await api(`/variant/product/${form.productId}`, { method: 'POST', body })
-      }
-      setModalOpen(false)
-      fetchData()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSaving(false)
-    }
+    setModalOpen(false)
+    setSaving(false)
   }
 
   const handleDelete = async () => {
     if (!deleteTarget) return
     setDeleting(true)
-    try {
-      await api(`/variant/product/${deleteTarget.product}/${deleteTarget._id}`, { method: 'DELETE' })
-      setDeleteTarget(null)
-      fetchData()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setDeleting(false)
-    }
+    setDeleteTarget(null)
+    setDeleting(false)
   }
 
   const productOptions = products.map((p) => ({ value: p._id, label: p.name }))

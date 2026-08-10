@@ -1,38 +1,30 @@
-import { config } from "../config/config.js";
+import axios from "axios";
+import { config } from "../config/config";
 
-const getToken = () => {
-  try {
-    return localStorage.getItem(config.TOKEN_KEY);
-  } catch {
-    return null;
-  }
+export const apiInstance = axios.create({
+  baseURL: config.API_URI,
+});
+
+export const register = async (data) => {
+  const response = await apiInstance.post("/auth/register", data);
+  return response.data;
 };
+export const login = async (data) => {
+  const response = await apiInstance.post("/auth/login", data);
+  return response.data;
+};
+export const getCurrentUser = async () => {
+  const token = localStorage.getItem(config.TOKEN_KEY);
 
-export const api = async (path, { method = "GET", body, isFormData = false } = {}) => {
-  const headers = {};
-  const token = getToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  if (body !== undefined && !isFormData) headers["Content-Type"] = "application/json";
+  const axiosConfig = {};
 
-  const response = await fetch(`${config.API_URI}${path}`, {
-    method,
-    headers,
-    body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const message =
-      (data.errors && data.errors.length && data.errors[0].msg) ||
-      data.message ||
-      "Something went wrong";
-    const error = new Error(message);
-    error.status = response.status;
-    throw error;
+  if (token) {
+    axiosConfig.headers = {
+      Authorization: `Bearer ${token}`,
+    };
   }
 
-  return data;
-};
+  const response = await apiInstance.get("/auth/get-me", axiosConfig);
 
-export default api;
+  return response.data;
+};
