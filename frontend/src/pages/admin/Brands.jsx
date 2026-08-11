@@ -18,7 +18,6 @@ import {
 import { fetchSubCategoryData } from "../../store/slices/subCategorySlice";
 import { useDispatch, useSelector } from "react-redux";
 const emptyForm = { name: "", subCategories: [], isActive: true };
-
 function Brands() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -34,7 +33,6 @@ function Brands() {
     setForm(emptyForm);
     setModalOpen(true);
   };
-
   const openEdit = (row) => {
     setEditing(row);
     setForm({
@@ -44,7 +42,6 @@ function Brands() {
     });
     setModalOpen(true);
   };
-
   const toggleSubCategory = (id) => {
     setForm((p) => {
       const exists = p.subCategories.includes(id);

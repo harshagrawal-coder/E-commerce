@@ -19,6 +19,7 @@ import {
   updateSubCategorydata,
   deleteSubCategorydata,
 } from "../../store/slices/subCategorySlice";
+import { fetchCategory } from "../../store/slices/categorySlice";
 const emptyForm = { name: "", description: "", category: "", isActive: true };
 
 function SubCategories() {
@@ -43,7 +44,6 @@ function SubCategories() {
     setImage(null);
     setModalOpen(true);
   };
-
   const openEdit = (row) => {
     setEditing(row);
     setForm({
@@ -55,17 +55,19 @@ function SubCategories() {
     setImage(null);
     setModalOpen(true);
   };
-  useEffect(() => {
-    dispatch(fetchSubCategoryData());
-    // dispatch(fetchSubCategoryData());
-  }, [dispatch]);
+
+useEffect(() => {
+  dispatch(fetchSubCategoryData());
+
+  if (categories.length === 0) {
+    dispatch(fetchCategory());
+  }
+}, [dispatch, categories.length]);
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!form.category) {
       return;
     }
-
     setSaving(true);
 
     try {

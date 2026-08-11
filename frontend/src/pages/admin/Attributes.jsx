@@ -1,104 +1,157 @@
-import { useState } from 'react'
-import { Plus } from 'lucide-react'
-import PageHeader from '../../components/ui/PageHeader'
-import Button from '../../components/ui/Button'
-import DataTable from '../../components/ui/DataTable'
-import Modal from '../../components/ui/Modal'
-import Input from '../../components/ui/Input'
-import Select from '../../components/ui/Select'
-import Checkbox from '../../components/ui/Checkbox'
-import Badge from '../../components/ui/Badge'
-import ConfirmDialog from '../../components/ui/ConfirmDialog'
-import ErrorAlert from '../../components/ui/ErrorAlert'
-
-const inputTypes = ['select', 'multiselect', 'text', 'number', 'boolean']
+import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
+import PageHeader from "../../components/ui/PageHeader";
+import Button from "../../components/ui/Button";
+import DataTable from "../../components/ui/DataTable";
+import Modal from "../../components/ui/Modal";
+import Input from "../../components/ui/Input";
+import Select from "../../components/ui/Select";
+import Checkbox from "../../components/ui/Checkbox";
+import Badge from "../../components/ui/Badge";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import ErrorAlert from "../../components/ui/ErrorAlert";
+import {
+  fetchAttributeData,
+  createAttribute,
+  updateAttributedata,
+  deleteAttributedata,
+} from "../../store/slices/attibute.slice";
+import { useSelector, useDispatch } from "react-redux";
+const inputTypes = ["select", "multiselect", "text", "number", "boolean"];
 
 const emptyForm = {
-  name: '',
-  inputType: 'select',
+  name: "",
+  inputType: "select",
   isVariant: false,
   isFilterable: true,
   isRequired: false,
   isActive: true,
   displayOrder: 0,
-}
-
+};
 function Attributes() {
-  const rows = []
-  const loading = false
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState(emptyForm)
-  const [saving, setSaving] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState(null)
-  const [deleting, setDeleting] = useState(false)
-  const [error, setError] = useState('')
-
+  const {
+    data: rows,
+    loading,
+    error,
+  } = useSelector((state) => state.attribute);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const dispatch = useDispatch();
   const openAdd = () => {
-    setEditing(null)
-    setForm(emptyForm)
-    setError('')
-    setModalOpen(true)
-  }
-
+    setEditing(null);
+    setForm(emptyForm);
+    setModalOpen(true);
+  };
+  useEffect(() => {
+    dispatch(fetchAttributeData());
+  }, [dispatch]);
   const openEdit = (row) => {
-    setEditing(row)
+    setEditing(row);
     setForm({
-      name: row.name || '',
-      inputType: row.inputType || 'select',
+      name: row.name || "",
+      inputType: row.inputType || "select",
       isVariant: row.isVariant ?? false,
       isFilterable: row.isFilterable ?? true,
       isRequired: row.isRequired ?? false,
       isActive: row.isActive ?? true,
       displayOrder: row.displayOrder ?? 0,
-    })
-    setError('')
-    setModalOpen(true)
-  }
-
+    });
+    setModalOpen(true);
+  };
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setSaving(true)
-    setModalOpen(false)
-    setSaving(false)
-  }
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const data = {
+        name: form.name,
+        inputType: form.inputType,
+        isVariant: form.isVariant,
+        isFilterable: form.isFilterable,
+        isRequired: form.isRequired,
+        isActive: form.isActive,
+        displayOrder: form.displayOrder,
+      };
 
+      if (editing) {
+        // UPDATE
+        await dispatch(
+          updateAttributedata({
+            id: editing._id,
+            data,
+          }),
+        ).unwrap();
+      } else {
+        // CREATE
+        await dispatch(createAttribute(data)).unwrap();
+      }
+      // Reset after successful API request
+      setModalOpen(false);
+      setEditing(null);
+      setForm(emptyForm);
+    } catch (error) {
+      console.log("Attribute save error:", error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
   const handleDelete = async () => {
-    if (!deleteTarget) return
-    setDeleting(true)
-    setDeleteTarget(null)
-    setDeleting(false)
-  }
+    if (!deleteTarget) return;
+
+    setDeleting(true);
+
+    try {
+      await dispatch(deleteAttributedata(deleteTarget._id)).unwrap();
+
+      setDeleteTarget(null);
+    } catch (error) {
+      console.log("Delete attribute error:", error);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const columns = [
-    { key: 'name', header: 'Name', render: (row) => <span className="font-medium text-ink">{row.name}</span> },
-    { key: 'slug', header: 'Slug' },
     {
-      key: 'inputType',
-      header: 'Input Type',
+      key: "name",
+      header: "Name",
+      render: (row) => <span className="font-medium text-ink">{row.name}</span>,
+    },
+    { key: "slug", header: "Slug" },
+    {
+      key: "inputType",
+      header: "Input Type",
       render: (row) => <Badge tone="gray">{row.inputType}</Badge>,
     },
     {
-      key: 'flags',
-      header: 'Flags',
+      key: "flags",
+      header: "Flags",
       render: (row) => (
         <div className="flex flex-wrap gap-1">
           {row.isVariant && <Badge tone="blue">Variant</Badge>}
           {row.isFilterable && <Badge tone="amber">Filterable</Badge>}
           {row.isRequired && <Badge tone="red">Required</Badge>}
-          {!row.isVariant && !row.isFilterable && !row.isRequired && <span className="text-ink-muted">-</span>}
+          {!row.isVariant && !row.isFilterable && !row.isRequired && (
+            <span className="text-ink-muted">-</span>
+          )}
         </div>
       ),
     },
-    { key: 'displayOrder', header: 'Order' },
+    { key: "displayOrder", header: "Order" },
     {
-      key: 'isActive',
-      header: 'Status',
+      key: "isActive",
+      header: "Status",
       render: (row) =>
-        row.isActive ? <Badge tone="green">Active</Badge> : <Badge tone="red">Inactive</Badge>,
+        row.isActive ? (
+          <Badge tone="green">Active</Badge>
+        ) : (
+          <Badge tone="red">Inactive</Badge>
+        ),
     },
-  ]
+  ];
 
   return (
     <div className="space-y-6">
@@ -127,14 +180,18 @@ function Attributes() {
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editing ? 'Edit Attribute' : 'Add Attribute'}
+        title={editing ? "Edit Attribute" : "Add Attribute"}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setModalOpen(false)} disabled={saving}>
+            <Button
+              variant="secondary"
+              onClick={() => setModalOpen(false)}
+              disabled={saving}
+            >
               Cancel
             </Button>
             <Button type="submit" form="attribute-form" loading={saving}>
-              {saving ? 'Saving...' : 'Save'}
+              {saving ? "Saving..." : "Save"}
             </Button>
           </>
         }
@@ -152,7 +209,9 @@ function Attributes() {
             id="inputType"
             label="Input Type"
             value={form.inputType}
-            onChange={(e) => setForm((p) => ({ ...p, inputType: e.target.value }))}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, inputType: e.target.value }))
+            }
             options={inputTypes.map((t) => ({ value: t, label: t }))}
           />
           <Input
@@ -160,31 +219,41 @@ function Attributes() {
             label="Display Order"
             type="number"
             value={form.displayOrder}
-            onChange={(e) => setForm((p) => ({ ...p, displayOrder: Number(e.target.value) }))}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, displayOrder: Number(e.target.value) }))
+            }
           />
           <div className="space-y-3">
             <Checkbox
               id="isVariant"
               checked={form.isVariant}
-              onChange={(e) => setForm((p) => ({ ...p, isVariant: e.target.checked }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, isVariant: e.target.checked }))
+              }
               label="Creates product variants"
             />
             <Checkbox
               id="isFilterable"
               checked={form.isFilterable}
-              onChange={(e) => setForm((p) => ({ ...p, isFilterable: e.target.checked }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, isFilterable: e.target.checked }))
+              }
               label="Filterable"
             />
             <Checkbox
               id="isRequired"
               checked={form.isRequired}
-              onChange={(e) => setForm((p) => ({ ...p, isRequired: e.target.checked }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, isRequired: e.target.checked }))
+              }
               label="Required"
             />
             <Checkbox
               id="isActive"
               checked={form.isActive}
-              onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, isActive: e.target.checked }))
+              }
               label="Active"
             />
           </div>
@@ -200,7 +269,7 @@ function Attributes() {
         message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
       />
     </div>
-  )
+  );
 }
 
-export default Attributes
+export default Attributes;

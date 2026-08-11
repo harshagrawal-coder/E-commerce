@@ -1,22 +1,23 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 import {
-  fetchbrand,
-  addBrand,
-  updateBrand,
-  deleteBrand,
-} from "../../services/brand.api";
+  fetchAttributeValues,
+  addAttributeValue,
+  updateAttributeValue,
+  deleteAttributeValue,
+} from "../../services/attributeValue.api";
 
 const initialState = {
   data: [],
   loading: false,
   error: null,
 };
-export const fetchbrandData = createAsyncThunk(
-  "brand/fetchBrand",
+
+export const fetchAttributeValueData = createAsyncThunk(
+  "attributeValue/fetchAttributeValue",
   async (_, thunkAPI) => {
     try {
-      const response = await fetchbrand();
+      const response = await fetchAttributeValues();
       return response;
     } catch (error) {
       return thunkAPI.rejectWithValue(
@@ -25,11 +26,11 @@ export const fetchbrandData = createAsyncThunk(
     }
   },
 );
-export const createBrand = createAsyncThunk(
-  "brand/createBrand",
+export const createAttributeValue = createAsyncThunk(
+  "attributeValue/createAttributeValue",
   async (data, thunkAPI) => {
     try {
-      const response = await addBrand(data);
+      const response = await addAttributeValue(data);
       return response;
     } catch (error) {
       return thunkAPI.rejectWithValue(
@@ -38,11 +39,11 @@ export const createBrand = createAsyncThunk(
     }
   },
 );
-export const updateBranddata = createAsyncThunk(
-  "brand/updateBrand",
+export const updateAttributeValuedata = createAsyncThunk(
+  "attributeValue/updateAttributeValue",
   async ({ data, id }, thunkAPI) => {
     try {
-      const response = await updateBrand(data, id);
+      const response = await updateAttributeValue(data, id);
       return response;
     } catch (error) {
       return thunkAPI.rejectWithValue(
@@ -51,11 +52,11 @@ export const updateBranddata = createAsyncThunk(
     }
   },
 );
-export const deleteBranddata = createAsyncThunk(
-  "brand/deleteBrand",
+export const deleteAttributeValuedata = createAsyncThunk(
+  "attributeValue/deleteAttributeValue",
   async (id, thunkAPI) => {
     try {
-      const response = await deleteBrand(id);
+      const response = await deleteAttributeValue(id);
 
       // We need the ID because backend doesn't return it
       return {
@@ -69,9 +70,8 @@ export const deleteBranddata = createAsyncThunk(
     }
   },
 );
-
-const brandSlice = createSlice({
-  name: "brand",
+const attributeValueSlice = createSlice({
+  name: "attributeValue",
   initialState,
   reducers: {
     clearError(state) {
@@ -80,68 +80,67 @@ const brandSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchbrandData.pending, (state) => {
+      .addCase(fetchAttributeValueData.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchbrandData.fulfilled, (state, action) => {
+      .addCase(fetchAttributeValueData.fulfilled, (state, action) => {
         state.loading = false;
         state.error = null;
         state.data = action.payload.data;
       })
-      .addCase(fetchbrandData.rejected, (state, action) => {
+      .addCase(fetchAttributeValueData.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Something went wrong";
       })
-      .addCase(createBrand.pending, (state) => {
+      .addCase(createAttributeValue.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(createBrand.fulfilled, (state, action) => {
+      .addCase(createAttributeValue.fulfilled, (state, action) => {
         state.loading = false;
         state.error = null;
         state.data.push(action.payload.data);
       })
-      .addCase(createBrand.rejected, (state, action) => {
+      .addCase(createAttributeValue.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Something went wrong";
       })
-      .addCase(updateBranddata.pending, (state) => {
+      .addCase(updateAttributeValuedata.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(updateBranddata.fulfilled, (state, action) => {
+      .addCase(updateAttributeValuedata.fulfilled, (state, action) => {
         state.loading = false;
         state.error = null;
-        const updatedBrand = action.payload.brand;
+        const updatedAttributeValue = action.payload.data;
         const index = state.data.findIndex(
-          (brand) => brand._id === updatedBrand._id,
+          (attributeValue) => attributeValue._id === updatedAttributeValue._id,
         );
         if (index !== -1) {
-          state.data[index] = updatedBrand;
+          state.data[index] = updatedAttributeValue;
         }
       })
-      .addCase(updateBranddata.rejected, (state, action) => {
+      .addCase(updateAttributeValuedata.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Something went wrong";
       })
-      .addCase(deleteBranddata.pending, (state) => {
+      .addCase(deleteAttributeValuedata.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(deleteBranddata.fulfilled, (state, action) => {
+      .addCase(deleteAttributeValuedata.fulfilled, (state, action) => {
         state.loading = false;
         state.error = null;
-
         state.data = state.data.filter(
-          (brand) => brand._id !== action.payload.id,
+          (attributeValue) => attributeValue._id !== action.payload.id,
         );
       })
-      .addCase(deleteBranddata.rejected, (state, action) => {
+      .addCase(deleteAttributeValuedata.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Something went wrong";
       });
   },
 });
-export const { clearError } = brandSlice.actions;
-export default brandSlice.reducer;
+export const { clearError } = attributeValueSlice.actions;
+export default attributeValueSlice.reducer;

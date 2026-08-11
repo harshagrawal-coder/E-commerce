@@ -1,156 +1,209 @@
 import slugify from "slugify";
 import AttributeValue from "../models/attributesValue.model.js";
 export const addAttributeValue = async (req, res) => {
-    try {
-        const { attribute, value, displayOrder, isDefault, isActive } = req.body;
-        if (!attribute || !value) {
-            return res.status(400).json({
-                success: false,
-                message: "Attribute and value are required"
-            });
-        }
-        const slug = slugify(value, {
-            lower: true,
-            strict: true,
-            trim: true
-        });
-        const existingAttributeValue = await AttributeValue.findOne({ attribute, value });
-        if (existingAttributeValue) {
-            return res.status(409).json({
-                success: false,
-                message: "Attribute value already exists for this attribute"
-            });
-        }
-        const attributeValue = await AttributeValue.create({
-            attribute,
-            value,
-            slug,
-            displayOrder,
-            isDefault,
-            isActive
-        });
-
-        return res.status(201).json({
-            success: true,
-            message: "Attribute value created successfully",
-            data: attributeValue
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
+  try {
+    const { attribute, value, displayOrder, isDefault, isActive } = req.body;
+    if (!attribute || !value) {
+      return res.status(400).json({
+        success: false,
+        message: "Attribute and value are required",
+      });
     }
+    const slug = slugify(value, {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
+    const existingAttributeValue = await AttributeValue.findOne({
+      attribute,
+      value,
+    });
+    if (existingAttributeValue) {
+      return res.status(409).json({
+        success: false,
+        message: "Attribute value already exists for this attribute",
+      });
+    }
+    const attributeValue = await AttributeValue.create({
+      attribute,
+      value,
+      slug,
+      displayOrder,
+      isDefault,
+      isActive,
+    });
+    await attributeValue.populate("attribute", "name slug");
+    return res.status(201).json({
+      success: true,
+      message: "Attribute value created successfully",
+      data: attributeValue,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
 export const getAttributeValue = async (req, res) => {
-    try {
-        const attributeValues = await AttributeValue.find().populate("attribute", "name slug");
-        return res.status(200).json({
-            success: true,
-            message: "Attribute values fetched successfully",
-            data: attributeValues
-        });
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
+  try {
+    const {
+      search = "",
+      attribute,
+      isActive,
+      isDefault,
+      page = 1,
+      limit = 10,
+      sortBy = "displayOrder",
+      sortOrder = "asc",
+    } = req.query;
+    const filter = {};
+    // Search by value
+    if (search.trim()) {
+      filter.value = {
+        $regex: search.trim(),
+        $options: "i",
+      };
     }
-};
+    // Filter by attribute
+    if (attribute) {
+      filter.attribute = attribute;
+    }
+    // Filter by active status
+    if (isActive !== undefined) {
+      filter.isActive = isActive === "true";
+    }
+    // Filter by default status
+    if (isDefault !== undefined) {
+      filter.isDefault = isDefault === "true";
+    }
+    // Pagination
+    const pageNumber = Math.max(Number(page), 1);
+    const limitNumber = Math.min(Math.max(Number(limit), 1), 100);
+    const skip = (pageNumber - 1) * limitNumber;
+    // Sorting
+    const sort = {
+      [sortBy]: sortOrder === "desc" ? -1 : 1,
+    };
+    const [attributeValues, total] = await Promise.all([
+      AttributeValue.find(filter)
+        .populate("attribute", "name slug")
+        .sort(sort)
+        .skip(skip)
+        .limit(limitNumber),
 
+      AttributeValue.countDocuments(filter),
+    ]);
+    return res.status(200).json({
+      success: true,
+      message: "Attribute values fetched successfully",
+      data: attributeValues,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 export const updateAttributeValue = async (req, res) => {
-    try {
-        const { attribute, value, displayOrder, isDefault, isActive } = req.body;
-        const attributeValue = await AttributeValue.findById(req.params.id);
+  try {
+    const { attribute, value, displayOrder, isDefault, isActive } = req.body;
+    const attributeValue = await AttributeValue.findById(req.params.id);
 
-        if (!attributeValue) {
-            return res.status(404).json({
-                success: false,
-                message: "Attribute value not found"
-            });
-        }
-
-        if (value) {
-            const slug = slugify(value, {
-                lower: true,
-                strict: true,
-                trim: true
-            });
-
-            const filter = { value };
-            if (attribute) {
-                filter.attribute = attribute;
-            }
-
-            const existingAttributeValue = await AttributeValue.findOne(filter);
-
-            if (existingAttributeValue && existingAttributeValue._id.toString() !== attributeValue._id.toString()) {
-                return res.status(409).json({
-                    success: false,
-                    message: "Attribute value already exists for this attribute"
-                });
-            }
-
-            attributeValue.value = value;
-            attributeValue.slug = slug;
-        }
-
-        if (attribute !== undefined) {
-            attributeValue.attribute = attribute;
-        }
-
-        if (displayOrder !== undefined) {
-            attributeValue.displayOrder = displayOrder;
-        }
-
-        if (isDefault !== undefined) {
-            attributeValue.isDefault = isDefault;
-        }
-
-        if (isActive !== undefined) {
-            attributeValue.isActive = isActive;
-        }
-
-        await attributeValue.save();
-
-        return res.status(200).json({
-            success: true,
-            message: "Attribute value updated successfully",
-            data: attributeValue
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
+    if (!attributeValue) {
+      return res.status(404).json({
+        success: false,
+        message: "Attribute value not found",
+      });
     }
+
+    if (value) {
+      const slug = slugify(value, {
+        lower: true,
+        strict: true,
+        trim: true,
+      });
+
+      const filter = { value };
+      if (attribute) {
+        filter.attribute = attribute;
+      }
+
+      const existingAttributeValue = await AttributeValue.findOne(filter);
+
+      if (
+        existingAttributeValue &&
+        existingAttributeValue._id.toString() !== attributeValue._id.toString()
+      ) {
+        return res.status(409).json({
+          success: false,
+          message: "Attribute value already exists for this attribute",
+        });
+      }
+
+      attributeValue.value = value;
+      attributeValue.slug = slug;
+    }
+
+    if (attribute !== undefined) {
+      attributeValue.attribute = attribute;
+    }
+
+    if (displayOrder !== undefined) {
+      attributeValue.displayOrder = displayOrder;
+    }
+
+    if (isDefault !== undefined) {
+      attributeValue.isDefault = isDefault;
+    }
+
+    if (isActive !== undefined) {
+      attributeValue.isActive = isActive;
+    }
+
+    await attributeValue.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Attribute value updated successfully",
+      data: attributeValue,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
-
 export const deleteAttributeValue = async (req, res) => {
-    try {
-        const attributeValue = await AttributeValue.findById(req.params.id);
+  try {
+    const attributeValue = await AttributeValue.findById(req.params.id);
 
-        if (!attributeValue) {
-            return res.status(404).json({
-                success: false,
-                message: "Attribute value not found"
-            });
-        }
-
-        await AttributeValue.findByIdAndDelete(req.params.id);
-
-        return res.status(200).json({
-            success: true,
-            message: "Attribute value deleted successfully"
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
+    if (!attributeValue) {
+      return res.status(404).json({
+        success: false,
+        message: "Attribute value not found",
+      });
     }
+
+    await AttributeValue.findByIdAndDelete(req.params.id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Attribute value deleted successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
