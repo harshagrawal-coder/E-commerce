@@ -14,6 +14,7 @@ import {
   updateVariantValidation,
   deleteVariantValidation,
   validate,
+  parseVariantFields,
 } from "../validators/productVariant.validator.js";
 const productVariantRouter = Router();
 productVariantRouter.post(
@@ -21,6 +22,7 @@ productVariantRouter.post(
   authMiddleware,
   authorize("admin"),
   upload.array("images"),
+  parseVariantFields,
   addVariantValidation,
   validate,
   addVariant,

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate, useOutlet } from 'react-router-dom'
 import {
   LayoutDashboard,
   FolderTree,
@@ -8,13 +8,14 @@ import {
   SlidersHorizontal,
   ListChecks,
   Package,
-  Boxes,
   Menu,
   X,
   LogOut,
   ChevronRight,
 } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
 import BrandLogo from '../auth/BrandLogo'
+import Toaster from '../ui/Toaster'
 import { config } from '../../config/config'
 
 const navGroups = [
@@ -39,10 +40,7 @@ const navGroups = [
   },
   {
     label: 'Products',
-    items: [
-      { to: '/admin/products', label: 'Products', icon: Package },
-      { to: '/admin/variants', label: 'Product Variants', icon: Boxes },
-    ],
+    items: [{ to: '/admin/products', label: 'Products', icon: Package }],
   },
 ]
 
@@ -51,7 +49,7 @@ function NavItems({ onNavigate }) {
     <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
       {navGroups.map((group) => (
         <div key={group.label}>
-          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-ink-muted/70">
+          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-ink-light">
             {group.label}
           </p>
           <ul className="space-y-1">
@@ -65,18 +63,31 @@ function NavItems({ onNavigate }) {
                     onClick={onNavigate}
                     className={({ isActive }) =>
                       [
-                        'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-200',
+                        'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                         isActive
-                          ? 'bg-primary text-white shadow-sm'
-                          : 'text-ink-muted hover:bg-surface hover:text-ink',
+                          ? 'bg-gradient-to-br from-primary-600 to-primary-500 text-white shadow-primary'
+                          : 'text-ink-muted hover:bg-ink/5 hover:text-ink',
                       ].join(' ')
                     }
                   >
                     {({ isActive }) => (
                       <>
-                        <Icon size={18} className={isActive ? 'text-white' : 'text-ink-muted group-hover:text-ink'} />
+                        <Icon
+                          size={18}
+                          strokeWidth={isActive ? 2.2 : 1.8}
+                          className={`transition-transform duration-200 group-hover:scale-110 ${
+                            isActive ? 'text-white' : 'text-ink-muted group-hover:text-ink'
+                          }`}
+                        />
                         <span className="flex-1">{item.label}</span>
-                        <ChevronRight size={14} className={isActive ? 'text-white/70' : 'text-ink-muted/40'} />
+                        <ChevronRight
+                          size={14}
+                          className={`transition-transform duration-200 ${
+                            isActive
+                              ? 'text-white/70'
+                              : 'text-ink-light group-hover:translate-x-0.5 group-hover:text-ink-muted'
+                          }`}
+                        />
                       </>
                     )}
                   </NavLink>
@@ -94,11 +105,11 @@ function SidebarContent({ onNavigate }) {
   const navigate = useNavigate()
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center border-b border-border px-5">
+      <div className="flex h-16 items-center border-b border-border/70 px-5">
         <BrandLogo size="sm" />
       </div>
       <NavItems onNavigate={onNavigate} />
-      <div className="border-t border-border p-3">
+      <div className="border-t border-border/70 p-3">
         <button
           type="button"
           onClick={() => {
@@ -106,9 +117,9 @@ function SidebarContent({ onNavigate }) {
             localStorage.removeItem(config.USER_KEY)
             navigate('/login')
           }}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-muted transition-colors duration-200 hover:bg-surface hover:text-red-600"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-muted transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
         >
-          <LogOut size={18} />
+          <LogOut size={18} className="transition-transform duration-200 group-hover:-translate-x-0.5" />
           Sign out
         </button>
       </div>
@@ -118,46 +129,61 @@ function SidebarContent({ onNavigate }) {
 
 function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const location = useLocation()
+  const outlet = useOutlet()
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-white lg:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border/80 bg-white/95 shadow-card backdrop-blur-xl lg:block">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-200 to-transparent" aria-hidden="true" />
         <SidebarContent />
       </aside>
 
       {/* Mobile sidebar */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
-            className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
-            onClick={() => setMobileOpen(false)}
-            aria-hidden="true"
-          />
-          <aside className="absolute inset-y-0 left-0 w-72 border-r border-border bg-white shadow-2xl">
-            <button
-              type="button"
+      <AnimatePresence>
+        {mobileOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-ink/45 backdrop-blur-[3px]"
               onClick={() => setMobileOpen(false)}
-              aria-label="Close menu"
-              className="absolute right-3 top-4 rounded-lg p-2 text-ink-muted hover:bg-surface hover:text-ink"
+              aria-hidden="true"
+            />
+            <motion.aside
+              initial={{ x: -288 }}
+              animate={{ x: 0 }}
+              exit={{ x: -288 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+              className="absolute inset-y-0 left-0 w-72 border-r border-border bg-white shadow-float"
             >
-              <X size={18} />
-            </button>
-            <SidebarContent onNavigate={() => setMobileOpen(false)} />
-          </aside>
-        </div>
-      )}
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close menu"
+                className="absolute right-3 top-4 rounded-lg p-2 text-ink-muted hover:bg-surface hover:text-ink"
+              >
+                <X size={18} />
+              </button>
+              <SidebarContent onNavigate={() => setMobileOpen(false)} />
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Main */}
       <div className="lg:pl-64">
         {/* Topbar */}
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-white/90 px-4 backdrop-blur sm:px-6">
+        <header className="glass sticky top-0 z-20 flex h-16 items-center justify-between border-b border-white/60 px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
               aria-label="Open menu"
-              className="rounded-lg p-2 text-ink-muted hover:bg-surface hover:text-ink lg:hidden"
+              className="rounded-lg p-2 text-ink-muted hover:bg-ink/5 hover:text-ink lg:hidden"
             >
               <Menu size={20} />
             </button>
@@ -167,16 +193,28 @@ function AdminLayout() {
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-ink-muted sm:block">Admin</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-sm font-semibold text-white shadow-primary">
               A
             </div>
           </div>
         </header>
 
         <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
-          <Outlet />
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              {outlet}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
+
+      <Toaster />
     </div>
   )
 }

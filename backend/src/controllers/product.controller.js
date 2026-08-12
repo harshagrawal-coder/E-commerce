@@ -7,6 +7,10 @@ import Brand from "../models/brand.model.js";
 import Attribute from "../models/attrubutes.model.js";
 import AttributeValue from "../models/attributesValue.model.js";
 import { uploadFile, deleteFile } from "../services/imagekit.js";
+import {
+  ValidationError,
+  validateVariantAgainstSubCategory,
+} from "../services/variantValidation.js";
 
 const validateVariant = async (variant, skus) => {
   if (!variant.sku) {
@@ -122,6 +126,14 @@ export const addProduct = async (req, res) => {
           fileId: uploadedImage.file.fileId,
         });
       }
+      // Merge previously stored images (kept during edit) in their current order
+      const existingImages =
+        typeof req.body.existingImages === "string"
+          ? JSON.parse(req.body.existingImages)
+          : req.body.existingImages;
+      if (Array.isArray(existingImages)) {
+        productImages.push(...existingImages);
+      }
     } else if (images && images.length) {
       productImages.push(...images);
     }
@@ -129,6 +141,11 @@ export const addProduct = async (req, res) => {
     const skus = [];
     for (const variant of variants) {
       await validateVariant(variant, skus);
+      await validateVariantAgainstSubCategory({
+        subCategoryId: existingSubCategory._id,
+        attributes: variant.attributes,
+        sku: variant.sku,
+      });
     }
 
     const product = await Product.create({
@@ -163,6 +180,13 @@ export const addProduct = async (req, res) => {
   } catch (error) {
     for (const fileId of uploadedFileIds) {
       await deleteFile(fileId);
+    }
+
+    if (error instanceof ValidationError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
     }
 
     return res.status(500).json({
@@ -322,6 +346,14 @@ export const updateProduct = async (req, res) => {
           fileId: uploadedImage.file.fileId,
         });
       }
+      // Merge previously stored images (kept during edit) in their current order
+      const existingImages =
+        typeof req.body.existingImages === "string"
+          ? JSON.parse(req.body.existingImages)
+          : req.body.existingImages;
+      if (Array.isArray(existingImages)) {
+        productImages.push(...existingImages);
+      }
       product.images = productImages;
     }
 
@@ -331,12 +363,24 @@ export const updateProduct = async (req, res) => {
       const skus = [];
       for (const variant of variants) {
         if (variant._id) {
+          if (variant.attributes && variant.attributes.length) {
+            await validateVariantAgainstSubCategory({
+              subCategoryId: product.subCategory,
+              attributes: variant.attributes,
+              sku: variant.sku,
+            });
+          }
           await ProductVariant.findByIdAndUpdate(variant._id, {
             ...variant,
             product: product._id,
           });
         } else {
           await validateVariant(variant, skus);
+          await validateVariantAgainstSubCategory({
+            subCategoryId: product.subCategory,
+            attributes: variant.attributes,
+            sku: variant.sku,
+          });
           await ProductVariant.create({
             ...variant,
             product: product._id,
@@ -353,6 +397,13 @@ export const updateProduct = async (req, res) => {
   } catch (error) {
     for (const fileId of uploadedFileIds) {
       await deleteFile(fileId);
+    }
+
+    if (error instanceof ValidationError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
     }
 
     return res.status(500).json({

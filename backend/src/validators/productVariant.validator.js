@@ -6,6 +6,31 @@ export const validate = (req, res, next) => {
   }
   next();
 };
+export const parseVariantFields = (req, res, next) => {
+  if (typeof req.body.attributes === "string") {
+    try {
+      req.body.attributes = JSON.parse(req.body.attributes);
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid attributes JSON",
+      });
+    }
+  }
+
+  if (typeof req.body.images === "string") {
+    try {
+      req.body.images = JSON.parse(req.body.images);
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid images JSON",
+      });
+    }
+  }
+
+  next();
+};
 export const productIdParam = [
   param("productId").isMongoId().withMessage("Invalid product id"),
 ];

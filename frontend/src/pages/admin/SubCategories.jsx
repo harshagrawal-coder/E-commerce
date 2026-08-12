@@ -11,6 +11,7 @@ import Badge from "../../components/ui/Badge";
 import ImageUpload from "../../components/ui/ImageUpload";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import ErrorAlert from "../../components/ui/ErrorAlert";
+import SubCategoryAttributeBuilder from "../../components/subcategories/SubCategoryAttributeBuilder";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -20,13 +21,28 @@ import {
   deleteSubCategorydata,
 } from "../../store/slices/subCategorySlice";
 import { fetchCategory } from "../../store/slices/categorySlice";
+import { fetchAttributeData } from "../../store/slices/attibute.slice";
+
 const emptyForm = { name: "", description: "", category: "", isActive: true };
+
+function mapAllowedAttributes(list = []) {
+  return list.map((a) => ({
+    attribute: a.attribute?._id ?? a.attribute ?? "",
+    allowedValues: (a.allowedValues || []).map((v) => v._id ?? v),
+    required: a.required || false,
+    isVariant: a.isVariant || false,
+    isFilterable: a.isFilterable ?? true,
+    isVisible: a.isVisible ?? true,
+    displayOrder: a.displayOrder ?? 0,
+  }));
+}
 
 function SubCategories() {
   const dispatch = useDispatch();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [allowedAttributes, setAllowedAttributes] = useState([]);
   const [image, setImage] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -38,9 +54,24 @@ function SubCategories() {
   } = useSelector((state) => state.subCategory);
 
   const { data: categories } = useSelector((state) => state.category);
+  const { data: attributes } = useSelector((state) => state.attribute);
+
+  useEffect(() => {
+    dispatch(fetchSubCategoryData());
+
+    if (categories.length === 0) {
+      dispatch(fetchCategory());
+    }
+  }, [dispatch, categories.length]);
+
+  useEffect(() => {
+    if (attributes.length === 0) dispatch(fetchAttributeData());
+  }, [dispatch, attributes.length]);
+
   const openAdd = () => {
     setEditing(null);
     setForm(emptyForm);
+    setAllowedAttributes([]);
     setImage(null);
     setModalOpen(true);
   };
@@ -52,17 +83,11 @@ function SubCategories() {
       category: row.category?._id ?? row.category ?? "",
       isActive: row.isActive ?? true,
     });
+    setAllowedAttributes(mapAllowedAttributes(row.allowedAttributes));
     setImage(null);
     setModalOpen(true);
   };
 
-useEffect(() => {
-  dispatch(fetchSubCategoryData());
-
-  if (categories.length === 0) {
-    dispatch(fetchCategory());
-  }
-}, [dispatch, categories.length]);
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.category) {
@@ -77,6 +102,10 @@ useEffect(() => {
       formData.append("description", form.description);
       formData.append("category", form.category);
       formData.append("isActive", form.isActive);
+      formData.append(
+        "allowedAttributes",
+        JSON.stringify(allowedAttributes.filter((r) => r.attribute)),
+      );
 
       if (image) {
         formData.append("image", image);
@@ -93,9 +122,11 @@ useEffect(() => {
         await dispatch(createSubCategory(formData)).unwrap();
       }
 
+      dispatch(fetchSubCategoryData());
       setModalOpen(false);
       setEditing(null);
       setForm(emptyForm);
+      setAllowedAttributes([]);
       setImage(null);
     } catch (error) {
       console.log(error);
@@ -155,6 +186,27 @@ useEffect(() => {
         </span>
       ),
     },
+    {
+      key: "attributes",
+      header: "Attributes",
+      render: (row) => {
+        const list = row.allowedAttributes || [];
+        return list.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {list.map((a) => {
+              const name = a.attribute?.name ?? a.attribute ?? "?";
+              return (
+                <Badge key={name} tone="blue">
+                  {name}
+                </Badge>
+              );
+            })}
+          </div>
+        ) : (
+          <span className="text-xs text-ink-muted/60">—</span>
+        );
+      },
+    },
     { key: "slug", header: "Slug" },
     {
       key: "isActive",
@@ -172,7 +224,7 @@ useEffect(() => {
     <div className="space-y-6">
       <PageHeader
         title="Sub Categories"
-        description="Manage product sub categories"
+        description="Manage sub categories and connect their attributes"
         actions={
           <Button onClick={openAdd}>
             <Plus size={16} />
@@ -196,6 +248,7 @@ useEffect(() => {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editing ? "Edit Sub Category" : "Add Sub Category"}
+        size="xl"
         footer={
           <>
             <Button
@@ -257,6 +310,13 @@ useEffect(() => {
               setForm((p) => ({ ...p, isActive: e.target.checked }))
             }
             label="Active"
+          />
+
+          {/* Attribute connection */}
+          <SubCategoryAttributeBuilder
+            rows={allowedAttributes}
+            onChange={setAllowedAttributes}
+            attributes={attributes}
           />
         </form>
       </Modal>

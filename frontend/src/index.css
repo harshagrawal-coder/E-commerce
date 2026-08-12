@@ -9,13 +9,56 @@
   --color-primary: #2563eb;
   --color-primary-50: #eff6ff;
   --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
   --color-primary-600: #2563eb;
   --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
 
-  --color-surface: #f8fafc;
-  --color-border: #e5e7eb;
-  --color-ink: #0f172a;
+  --color-surface: #f7f9fc;
+  --color-background: #f3f6fb;
+  --color-border: #e5e8ef;
+  --color-border-strong: #d6dae3;
+  --color-ink: #0b1220;
   --color-ink-muted: #64748b;
+  --color-ink-light: #94a3b8;
+
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --shadow-raised: 0 2px 4px rgba(16, 24, 40, 0.05), 0 8px 20px -6px rgba(16, 24, 40, 0.1);
+  --shadow-float: 0 8px 24px -8px rgba(16, 24, 40, 0.16), 0 4px 8px -4px rgba(16, 24, 40, 0.06);
+  --shadow-primary: 0 8px 20px -6px rgba(37, 99, 235, 0.5);
+
+  --animate-fade-up: fade-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-in: fade-in 0.25s ease both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 html {
@@ -26,4 +69,61 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: var(--color-ink);
+  background-color: var(--color-background);
+  background-image:
+    radial-gradient(1200px 480px at 12% -8%, rgba(37, 99, 235, 0.055), transparent 60%),
+    radial-gradient(900px 420px at 92% -10%, rgba(56, 189, 248, 0.05), transparent 55%),
+    linear-gradient(180deg, #f6f8fc 0%, var(--color-background) 320px);
+  background-repeat: no-repeat;
+}
+
+/* ---------- Glassmorphism (selective) ---------- */
+.glass {
+  background: rgba(255, 255, 255, 0.68);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.86);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.glass-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.78));
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+}
+
+/* ---------- Elevated surfaces ---------- */
+.ring-focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12), var(--shadow-card);
+}
+
+.text-gradient-primary {
+  background: linear-gradient(120deg, #2563eb, #3b82f6 55%, #60a5fa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+::selection {
+  background-color: rgba(37, 99, 235, 0.18);
+}
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }

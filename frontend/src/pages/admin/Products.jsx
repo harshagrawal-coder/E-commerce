@@ -1,373 +1,198 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Plus } from 'lucide-react'
-import { useDispatch, useSelector } from 'react-redux'
-import PageHeader from '../../components/ui/PageHeader'
-import Button from '../../components/ui/Button'
-import DataTable from '../../components/ui/DataTable'
-import Modal from '../../components/ui/Modal'
-import Input from '../../components/ui/Input'
-import Select from '../../components/ui/Select'
-import Checkbox from '../../components/ui/Checkbox'
-import Badge from '../../components/ui/Badge'
-import ImageUpload from '../../components/ui/ImageUpload'
-import ConfirmDialog from '../../components/ui/ConfirmDialog'
-import ErrorAlert from '../../components/ui/ErrorAlert'
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { Plus, Search, FilterX, Package } from "lucide-react";
+import PageHeader from "../../components/ui/PageHeader";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import Select from "../../components/ui/Select";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import ErrorAlert from "../../components/ui/ErrorAlert";
+import ProductTable from "../../components/products/ProductTable";
+import PageTransition from "../../components/ui/PageTransition";
 import {
   fetchProductData,
-  createProduct,
-  updateProductData,
   deleteProductData,
-} from '../../store/slices/product.slice'
-import { fetchCategory } from '../../store/slices/categorySlice'
-import { fetchSubCategoryData } from '../../store/slices/subCategorySlice'
-import { fetchbrandData } from '../../store/slices/brand.slice'
+  clearError,
+} from "../../store/slices/product.slice";
+import { fetchCategory } from "../../store/slices/categorySlice";
+import { fetchSubCategoryData } from "../../store/slices/subCategorySlice";
+import { fetchbrandData } from "../../store/slices/brand.slice";
+import { showToast } from "../../utils/toast";
 
-const emptyForm = {
-  name: '',
-  description: '',
-  category: '',
-  subCategory: '',
-  brand: '',
-  isActive: true,
-  isFeatured: false,
-  variantsJson: '[]',
-}
-
-function PreviewImage({ file, onRemove, index }) {
-  const url = useMemo(() => URL.createObjectURL(file), [file])
-
-  useEffect(() => () => URL.revokeObjectURL(url), [url])
-
-  return (
-    <div className="relative">
-      <img
-        src={url}
-        alt={`Product ${index + 1}`}
-        className="h-20 w-20 rounded-xl border border-border object-cover"
-      />
-      <button
-        type="button"
-        onClick={onRemove}
-        className="absolute -right-1.5 -top-1.5 rounded-full bg-red-600 p-0.5 text-white"
-        aria-label="Remove image"
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      </button>
-    </div>
-  )
-}
-
-function parseVariants(json) {
-  try {
-    const variants = JSON.parse(json || '[]')
-    return Array.isArray(variants) ? variants : []
-  } catch {
-    return null
-  }
-}
+const emptyFilters = { search: "", category: "", subCategory: "", brand: "", status: "" };
 
 function Products() {
-  const dispatch = useDispatch()
-  const { data: rows, loading, error: storeError } = useSelector((state) => state.product)
-  const { data: categories } = useSelector((state) => state.category)
-  const { data: subCategories } = useSelector((state) => state.subCategory)
-  const { data: brands } = useSelector((state) => state.brand)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState(emptyForm)
-  const [images, setImages] = useState([])
-  const [saving, setSaving] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState(null)
-  const [deleting, setDeleting] = useState(false)
-  const [error, setError] = useState('')
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { data: products, loading, error: storeError } = useSelector((state) => state.product);
+  const { data: categories } = useSelector((state) => state.category);
+  const { data: subCategories } = useSelector((state) => state.subCategory);
+  const { data: brands } = useSelector((state) => state.brand);
+
+  const [filters, setFilters] = useState(emptyFilters);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchProductData())
-    dispatch(fetchCategory())
-    dispatch(fetchSubCategoryData())
-    dispatch(fetchbrandData())
-  }, [dispatch])
+    dispatch(fetchProductData());
+    dispatch(fetchCategory());
+    dispatch(fetchSubCategoryData());
+    dispatch(fetchbrandData());
+    return () => dispatch(clearError());
+  }, [dispatch]);
 
-  const openAdd = () => {
-    setEditing(null)
-    setForm(emptyForm)
-    setImages([])
-    setError('')
-    setModalOpen(true)
-  }
+  const filteredSubCategories = useMemo(
+    () => subCategories.filter((s) => (s.category?._id ?? s.category) === filters.category),
+    [subCategories, filters.category],
+  );
 
-  const openEdit = (row) => {
-    setEditing(row)
-    setForm({
-      name: row.name || '',
-      description: row.description || '',
-      category: row.category?._id ?? row.category ?? '',
-      subCategory: row.subCategory?._id ?? row.subCategory ?? '',
-      brand: row.brand?._id ?? row.brand ?? '',
-      isActive: row.isActive ?? true,
-      isFeatured: row.isFeatured ?? false,
-      variantsJson: JSON.stringify(row.variants || [], null, 2),
-    })
-    setImages([])
-    setError('')
-    setModalOpen(true)
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!form.category || !form.subCategory || !form.brand) {
-      setError('Category, sub category and brand are required')
-      return
-    }
-    const variants = parseVariants(form.variantsJson)
-    if (variants === null) {
-      setError('Variants must be a valid JSON array')
-      return
-    }
-    setError('')
-    setSaving(true)
-
-    const payload = {
-      name: form.name,
-      description: form.description,
-      category: form.category,
-      subCategory: form.subCategory,
-      brand: form.brand,
-      isActive: form.isActive,
-      isFeatured: form.isFeatured,
-      ...(variants.length ? { variants } : {}),
-    }
-
-    let data = payload
-    if (images.length > 0) {
-      data = new FormData()
-      Object.entries(payload).forEach(([key, value]) => {
-        data.append(key, key === 'variants' ? JSON.stringify(value) : value)
-      })
-      images.forEach((img) => data.append('images', img))
-    }
-
-    try {
-      if (editing) {
-        await dispatch(updateProductData({ data, id: editing._id })).unwrap()
-      } else {
-        await dispatch(createProduct(data)).unwrap()
+  const filteredProducts = useMemo(() => {
+    const query = filters.search.trim().toLowerCase();
+    return products.filter((p) => {
+      if (query) {
+        const haystack = [
+          p.name,
+          p.brand?.name ?? p.brand,
+          p.category?.name ?? p.category,
+          p.subCategory?.name ?? p.subCategory,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(query)) return false;
       }
-      setModalOpen(false)
-      setEditing(null)
-      setForm(emptyForm)
-      setImages([])
-    } catch (err) {
-      setError(err)
-    } finally {
-      setSaving(false)
-    }
-  }
+      if (filters.category && (p.category?._id ?? p.category) !== filters.category) return false;
+      if (filters.subCategory && (p.subCategory?._id ?? p.subCategory) !== filters.subCategory)
+        return false;
+      if (filters.brand && (p.brand?._id ?? p.brand) !== filters.brand) return false;
+      if (filters.status === "active" && !p.isActive) return false;
+      if (filters.status === "inactive" && p.isActive) return false;
+      return true;
+    });
+  }, [products, filters]);
+
+  const hasActiveFilters = Object.values(filters).some((v) => v !== "");
 
   const handleDelete = async () => {
-    if (!deleteTarget) return
-    setDeleting(true)
-
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await dispatch(deleteProductData(deleteTarget._id)).unwrap()
-      setDeleteTarget(null)
+      await dispatch(deleteProductData(deleteTarget._id)).unwrap();
+      setDeleteTarget(null);
+      showToast(`"${deleteTarget.name}" deleted`);
     } catch (err) {
-      setError(err)
+      showToast(err || "Failed to delete product", "error");
     } finally {
-      setDeleting(false)
+      setDeleting(false);
     }
-  }
-
-  const categoryOptions = categories.map((c) => ({ value: c._id, label: c.name }))
-  const subCategoryOptions = subCategories.map((s) => ({ value: s._id, label: s.name }))
-  const brandOptions = brands.map((b) => ({ value: b._id, label: b.name }))
-
-  const columns = [
-    {
-      key: 'images',
-      header: 'Image',
-      render: (row) =>
-        row.images?.[0]?.url ? (
-          <img src={row.images[0].url} alt={row.name} className="h-10 w-10 rounded-lg border border-border object-cover" />
-        ) : (
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface text-xs text-ink-muted">
-            -
-          </span>
-        ),
-    },
-    { key: 'name', header: 'Name', render: (row) => <span className="font-medium text-ink">{row.name}</span> },
-    {
-      key: 'category',
-      header: 'Category',
-      render: (row) => <span className="text-ink-muted">{row.category?.name ?? row.category ?? '-'}</span>,
-    },
-    {
-      key: 'subCategory',
-      header: 'Sub Category',
-      render: (row) => <span className="text-ink-muted">{row.subCategory?.name ?? row.subCategory ?? '-'}</span>,
-    },
-    {
-      key: 'brand',
-      header: 'Brand',
-      render: (row) => <span className="text-ink-muted">{row.brand?.name ?? row.brand ?? '-'}</span>,
-    },
-    {
-      key: 'flags',
-      header: 'Flags',
-      render: (row) => (
-        <div className="flex flex-wrap gap-1">
-          {row.isFeatured && <Badge tone="amber">Featured</Badge>}
-          {row.isActive ? <Badge tone="green">Active</Badge> : <Badge tone="red">Inactive</Badge>}
-        </div>
-      ),
-    },
-  ]
+  };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Products"
-        description="Manage products"
-        actions={
-          <Button onClick={openAdd}>
-            <Plus size={16} />
-            Add Product
-          </Button>
-        }
-      />
-
-      <ErrorAlert message={error || storeError} />
-
-      <DataTable
-        columns={columns}
-        rows={rows}
-        loading={loading}
-        onEdit={openEdit}
-        onDelete={setDeleteTarget}
-        emptyMessage="No products yet"
-      />
-
-      <Modal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editing ? 'Edit Product' : 'Add Product'}
-        size="lg"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setModalOpen(false)} disabled={saving}>
-              Cancel
+    <PageTransition>
+      <div className="space-y-6">
+        <PageHeader
+          title="Products"
+          description="Manage your product catalog and variants"
+          actions={
+            <Button onClick={() => navigate("/admin/products/new")}>
+              <Plus size={16} />
+              Add Product
             </Button>
-            <Button type="submit" form="product-form" loading={saving}>
-              {saving ? 'Saving...' : 'Save'}
-            </Button>
-          </>
-        }
-      >
-        <form id="product-form" onSubmit={handleSubmit} className="space-y-5">
-          <Input
-            id="name"
-            label="Name"
-            value={form.name}
-            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-            placeholder="Wireless Headphones"
-            required
-          />
-          <Input
-            id="description"
-            label="Description"
-            value={form.description}
-            onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            placeholder="Product description"
-            required
-          />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Select
-              id="category"
-              label="Category"
-              value={form.category}
-              onChange={(e) => setForm((p) => ({ ...p, category: e.target.value, subCategory: '' }))}
-              options={categoryOptions}
-              placeholder="Select category"
-              required
-            />
-            <Select
-              id="subCategory"
-              label="Sub Category"
-              value={form.subCategory}
-              onChange={(e) => setForm((p) => ({ ...p, subCategory: e.target.value }))}
-              options={subCategoryOptions}
-              placeholder="Select sub category"
-              required
-            />
-            <Select
-              id="brand"
-              label="Brand"
-              value={form.brand}
-              onChange={(e) => setForm((p) => ({ ...p, brand: e.target.value }))}
-              options={brandOptions}
-              placeholder="Select brand"
-              required
-            />
-          </div>
+          }
+        />
 
-          <div>
-            <span className="mb-2 block text-sm font-medium text-ink">Images</span>
-            <div className="flex flex-wrap gap-3">
-              {images.map((img, i) => (
-                <PreviewImage key={i} file={img} onRemove={() => setImages((prev) => prev.filter((_, idx) => idx !== i))} index={i} />
-              ))}
-              {images.length < 6 && (
-                <ImageUpload label="" onChange={(f) => f && setImages((prev) => [...prev, f])} />
-              )}
+        <ErrorAlert message={storeError} />
+
+        <div className="glass-card relative overflow-hidden rounded-2xl p-4 shadow-float">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-300/50 to-transparent"
+            aria-hidden="true"
+          />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <div className="xl:col-span-1">
+              <Input
+                id="search"
+                icon={<Search size={15} />}
+                value={filters.search}
+                onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+                placeholder="Search products…"
+                containerClassName="h-full"
+              />
             </div>
-          </div>
-
-          <div>
-            <label htmlFor="variantsJson" className="mb-2 block text-sm font-medium text-ink">
-              Variants (JSON array)
-            </label>
-            <textarea
-              id="variantsJson"
-              rows={6}
-              value={form.variantsJson}
-              onChange={(e) => setForm((p) => ({ ...p, variantsJson: e.target.value }))}
-              placeholder='[{"sku":"HD-01","price":99,"stock":10,"attributes":[]}]'
-              className="w-full rounded-xl border border-border bg-white px-3.5 py-2.5 font-mono text-xs text-ink shadow-sm transition-colors duration-200 focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+            <Select
+              id="filter-category"
+              value={filters.category}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, category: e.target.value, subCategory: "" }))
+              }
+              options={categories.map((c) => ({ value: c._id, label: c.name }))}
+              placeholder="All categories"
             />
-            <p className="mt-1.5 text-xs text-ink-muted">
-              Optional. Each variant: sku, price, stock, attributes, isDefault, isActive.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <Checkbox
-              id="isFeatured"
-              checked={form.isFeatured}
-              onChange={(e) => setForm((p) => ({ ...p, isFeatured: e.target.checked }))}
-              label="Featured"
+            <Select
+              id="filter-subcategory"
+              value={filters.subCategory}
+              onChange={(e) => setFilters((f) => ({ ...f, subCategory: e.target.value }))}
+              options={filteredSubCategories.map((s) => ({ value: s._id, label: s.name }))}
+              placeholder={filters.category ? "All sub-categories" : "Pick a category first"}
+              disabled={!filters.category}
             />
-            <Checkbox
-              id="isActive"
-              checked={form.isActive}
-              onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
-              label="Active"
+            <Select
+              id="filter-brand"
+              value={filters.brand}
+              onChange={(e) => setFilters((f) => ({ ...f, brand: e.target.value }))}
+              options={brands.map((b) => ({ value: b._id, label: b.name }))}
+              placeholder="All brands"
+            />
+            <Select
+              id="filter-status"
+              value={filters.status}
+              onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
+              options={[
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+              ]}
+              placeholder="All statuses"
             />
           </div>
-        </form>
-      </Modal>
+          {hasActiveFilters && (
+            <div className="mt-3 flex items-center justify-between border-t border-white/60 pt-3">
+              <p className="inline-flex items-center gap-1.5 text-xs text-ink-muted">
+                <Package size={13} />
+                {filteredProducts.length} result{filteredProducts.length === 1 ? "" : "s"}
+              </p>
+              <button
+                type="button"
+                onClick={() => setFilters(emptyFilters)}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary-50 hover:text-primary-700"
+              >
+                <FilterX size={13} />
+                Clear filters
+              </button>
+            </div>
+          )}
+        </div>
 
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDelete}
-        loading={deleting}
-        title="Delete product"
-        message={`Are you sure you want to delete "${deleteTarget?.name}"? Its variants will also be deleted.`}
-      />
-    </div>
-  )
+        <ProductTable
+          products={filteredProducts}
+          loading={loading}
+          onView={(p) => navigate(`/admin/products/${p._id}`)}
+          onEdit={(p) => navigate(`/admin/products/${p._id}/edit`)}
+          onManageVariants={(p) => navigate(`/admin/products/${p._id}`)}
+          onDelete={setDeleteTarget}
+        />
+
+        <ConfirmDialog
+          open={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleDelete}
+          loading={deleting}
+          title="Delete product"
+          message={`Are you sure you want to delete "${deleteTarget?.name}"? Its variants and images will also be deleted. This cannot be undone.`}
+        />
+      </div>
+    </PageTransition>
+  );
 }
 
-export default Products
+export default Products;

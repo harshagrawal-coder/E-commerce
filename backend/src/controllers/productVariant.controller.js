@@ -3,6 +3,10 @@ import Product from "../models/product.models.js";
 import Attribute from "../models/attrubutes.model.js";
 import AttributeValue from "../models/attributesValue.model.js";
 import { uploadFile, deleteFile } from "../services/imagekit.js";
+import {
+  ValidationError,
+  validateVariantAgainstSubCategory,
+} from "../services/variantValidation.js";
 
 const validateVariant = async (variant, skus) => {
     if (!variant.sku) {
@@ -43,12 +47,21 @@ const validateVariant = async (variant, skus) => {
         }
     }
 };
+const parseArrayField = (value) => {
+  if (value === undefined || value === null) return [];
+  if (Array.isArray(value)) return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return [];
+  }
+};
 export const addVariant = async (req, res) => {
     const uploadedFileIds = [];
     try {
         const { productId } = req.params;
         const { sku, price, stock, images, isDefault, isActive } = req.body;
-        const attributes = req.body.attributes || [];
+        const attributes = parseArrayField(req.body.attributes);
 
         const product = await Product.findById(productId);
         if (!product) {
@@ -67,6 +80,11 @@ export const addVariant = async (req, res) => {
         }
 
         await validateVariant({ sku, price, attributes }, []);
+        await validateVariantAgainstSubCategory({
+          subCategoryId: product.subCategory,
+          attributes,
+          sku,
+        });
 
         const variantImages = [];
         if (req.files && req.files.length) {
@@ -85,6 +103,17 @@ export const addVariant = async (req, res) => {
             }
         } else if (images && images.length) {
             variantImages.push(...images);
+        }
+
+        // Merge previously stored images (kept during edit) in their current order
+        if (req.files && req.files.length) {
+            const existingImages =
+                typeof req.body.existingImages === "string"
+                    ? JSON.parse(req.body.existingImages)
+                    : req.body.existingImages;
+            if (Array.isArray(existingImages)) {
+                variantImages.push(...existingImages);
+            }
         }
 
         const variant = await ProductVariant.create({
@@ -108,6 +137,13 @@ export const addVariant = async (req, res) => {
 
         for (const fileId of uploadedFileIds) {
             await deleteFile(fileId);
+        }
+
+        if (error instanceof ValidationError) {
+            return res.status(error.statusCode).json({
+                success: false,
+                message: error.message
+            });
         }
 
         return res.status(500).json({
@@ -149,7 +185,7 @@ export const updateVariant = async (req, res) => {
     try {
         const { productId, id } = req.params;
         const { sku, price, stock, images, isDefault, isActive } = req.body;
-        const attributes = req.body.attributes || [];
+        const attributes = parseArrayField(req.body.attributes);
 
         const product = await Product.findById(productId);
         if (!product) {
@@ -188,6 +224,11 @@ export const updateVariant = async (req, res) => {
 
         if (attributes.length) {
             await validateVariant({ sku: variant.sku, price: variant.price, attributes }, []);
+            await validateVariantAgainstSubCategory({
+                subCategoryId: product.subCategory,
+                attributes,
+                sku: variant.sku,
+            });
             variant.attributes = attributes;
         }
 
@@ -220,6 +261,14 @@ export const updateVariant = async (req, res) => {
                     fileId: uploadedImage.file.fileId
                 });
             }
+            // Merge previously stored images (kept during edit) in their current order
+            const existingImages =
+                typeof req.body.existingImages === "string"
+                    ? JSON.parse(req.body.existingImages)
+                    : req.body.existingImages;
+            if (Array.isArray(existingImages)) {
+                variantImages.push(...existingImages);
+            }
             variant.images = variantImages;
 
             for (const image of oldImages) {
@@ -241,6 +290,13 @@ export const updateVariant = async (req, res) => {
 
         for (const fileId of uploadedFileIds) {
             await deleteFile(fileId);
+        }
+
+        if (error instanceof ValidationError) {
+            return res.status(error.statusCode).json({
+                success: false,
+                message: error.message
+            });
         }
 
         return res.status(500).json({

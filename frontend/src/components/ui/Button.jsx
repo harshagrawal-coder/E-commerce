@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 function Button({
   children,
@@ -13,13 +14,13 @@ function Button({
 }) {
   const variants = {
     primary:
-      'bg-primary text-white hover:bg-primary-700 focus-visible:ring-primary-600/40 shadow-sm',
+      'bg-primary text-white shadow-card hover:bg-primary-700 focus-visible:ring-primary-600/40 hover:shadow-primary',
     secondary:
-      'bg-white text-ink border border-border hover:bg-surface focus-visible:ring-ink/15 shadow-sm',
+      'bg-white/80 text-ink border border-border hover:bg-white hover:border-ink-muted/30 focus-visible:ring-ink/15 shadow-card backdrop-blur-sm',
     ghost:
-      'bg-transparent text-ink-muted hover:bg-surface hover:text-ink focus-visible:ring-ink/15',
+      'bg-transparent text-ink-muted hover:bg-ink/5 hover:text-ink focus-visible:ring-ink/15',
     danger:
-      'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600/40 shadow-sm',
+      'bg-red-600 text-white shadow-card hover:bg-red-700 focus-visible:ring-red-600/40 hover:shadow-float',
   }
 
   const sizes = {
@@ -29,14 +30,16 @@ function Button({
   }
 
   return (
-    <button
+    <motion.button
       type={type}
       disabled={disabled || loading}
+      whileTap={disabled || loading ? undefined : { scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 30, mass: 0.6 }}
       className={[
         'inline-flex items-center justify-center gap-2 rounded-xl font-medium',
-        'transition-colors duration-200 ease-out',
+        'transition-[background-color,border-color,box-shadow,color] duration-200 ease-out',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-        'disabled:cursor-not-allowed disabled:opacity-60',
+        'disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none',
         variants[variant],
         sizes[size],
         fullWidth && 'w-full',
@@ -46,7 +49,7 @@ function Button({
     >
       {loading && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
       {children}
-    </button>
+    </motion.button>
   )
 }
 

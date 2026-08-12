@@ -60,7 +60,7 @@ const productSchema = new mongoose.Schema(
     },
     isFeatured: {
       type: Boolean,
-      default:false,
+      default: false,
     },
     totalSold: {
       type: Number,

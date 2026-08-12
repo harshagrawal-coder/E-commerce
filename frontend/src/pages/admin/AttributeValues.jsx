@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
 import Button from "../../components/ui/Button";
 import DataTable from "../../components/ui/DataTable";
@@ -19,7 +19,6 @@ import {
   clearError,
 } from "../../store/slices/attributeValue.slice";
 import { fetchAttributeData } from "../../store/slices/attibute.slice";
-import { isAction } from "@reduxjs/toolkit";
 const emptyForm = {
   attribute: "",
   value: "",
@@ -41,6 +40,7 @@ function AttributeValues() {
   const [formError, setFormError] = useState("");
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [values, setValues] = useState([""]);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -51,24 +51,6 @@ function AttributeValues() {
     error,
   } = useSelector((state) => state.attributeValue);
   const { data: attributes } = useSelector((state) => state.attribute);
-  const buildQueryString = () => {
-    const params = new URLSearchParams();
-    if (filter.search.trim()) {
-      params.append("search", filter.search.trim());
-    }
-    if (filter.attribute) {
-      params.append("attribute", filter.attribute);
-    }
-    if (filter.isActive !== "") {
-      params.append("isActive", filter.isActive);
-    }
-    if (filter.isDefault !== "") {
-      params.append("isDefault", filter.isDefault);
-    }
-
-    params.append("page", filter.page);
-    params.append("limit", filter.limit);
-  };
   useEffect(() => {
     dispatch(fetchAttributeValueData(filter));
   }, [dispatch, filter]);
@@ -79,12 +61,15 @@ function AttributeValues() {
   }, [dispatch, attributes.length]);
   const openAdd = () => {
     dispatch(clearError());
+    setFormError("");
     setEditing(null);
     setForm(emptyForm);
+    setValues([""]);
     setModalOpen(true);
   };
   const openEdit = (row) => {
     dispatch(clearError());
+    setFormError("");
     setEditing(row);
     setForm({
       attribute: row.attribute?._id ?? row.attribute ?? "",
@@ -101,10 +86,16 @@ function AttributeValues() {
       setFormError("Attribute is required");
       return;
     }
+    const valuesToCreate = editing
+      ? [form.value]
+      : values.map((v) => v.trim()).filter(Boolean);
+    if (!valuesToCreate.length) {
+      setFormError("At least one value is required");
+      return;
+    }
     setSaving(true);
     try {
-      const data = {
-        value: form.value,
+      const base = {
         attribute: form.attribute,
         displayOrder: form.displayOrder,
         isActive: form.isActive,
@@ -113,17 +104,20 @@ function AttributeValues() {
       if (editing) {
         await dispatch(
           updateAttributeValuedata({
-            data,
+            data: { ...base, value: form.value },
             id: editing._id,
           }),
         ).unwrap();
       } else {
-        await dispatch(createAttributeValue(data)).unwrap();
+        for (const value of valuesToCreate) {
+          await dispatch(createAttributeValue({ ...base, value })).unwrap();
+        }
       }
       // Only execute after successful API request
       setModalOpen(false);
       setEditing(null);
       setForm(emptyForm);
+      setValues([""]);
     } catch (error) {
       console.log("Attribute value error:", error);
     } finally {
@@ -316,14 +310,65 @@ function AttributeValues() {
             placeholder="Select an attribute"
             required
           />
-          <Input
-            id="value"
-            label="Value"
-            value={form.value}
-            onChange={(e) => setForm((p) => ({ ...p, value: e.target.value }))}
-            placeholder="Red"
-            required
-          />
+          {editing ? (
+            <Input
+              id="value"
+              label="Value"
+              value={form.value}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, value: e.target.value }))
+              }
+              placeholder="Red"
+              required
+            />
+          ) : (
+            <div>
+              <label className="mb-2 block text-sm font-medium text-ink">
+                Values
+              </label>
+              <div className="space-y-2">
+                {values.map((v, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Input
+                      id={`value-${i}`}
+                      value={v}
+                      onChange={(e) =>
+                        setValues((prev) =>
+                          prev.map((x, j) => (j === i ? e.target.value : x)),
+                        )
+                      }
+                      placeholder="Red"
+                      className="flex-1"
+                    />
+                    {values.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setValues((prev) =>
+                            prev.filter((_, j) => j !== i),
+                          )
+                        }
+                        aria-label="Remove value"
+                        className="mt-1 rounded-lg p-2 text-ink-muted transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => setValues((prev) => [...prev, ""])}
+                className="mt-2"
+              >
+                <Plus size={14} />
+                Add value
+              </Button>
+            </div>
+          )}
           <Input
             id="displayOrder"
             label="Display Order"

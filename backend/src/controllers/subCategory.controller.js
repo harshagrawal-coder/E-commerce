@@ -37,17 +37,43 @@ const validateAllowedAttributes = async (allowedAttributes) => {
     if (!attribute) {
       throw new Error(`Attribute ${item.attribute} not found`);
     }
+    if (!attribute.isActive) {
+      throw new Error(`Attribute "${attribute.name}" is inactive and cannot be connected`);
+    }
 
     if (item.allowedValues && item.allowedValues.length) {
+      const duplicateValues = item.allowedValues.some(
+        (value, index) =>
+          item.allowedValues.findIndex((v) => v.toString() === value.toString()) !==
+          index,
+      );
+      if (duplicateValues) {
+        throw new Error(
+          `Duplicate values found for attribute "${attribute.name}"`,
+        );
+      }
+
       const values = await AttributeValue.find({
         _id: { $in: item.allowedValues },
         attribute: item.attribute,
       });
 
       if (values.length !== item.allowedValues.length) {
+        const foundIds = new Set(values.map((v) => v._id.toString()));
+        const missing = item.allowedValues
+          .filter((id) => !foundIds.has(id.toString()))
+          .map((id) => id.toString());
         throw new Error(
-          `Invalid allowedValues for attribute ${item.attribute}`,
+          `Invalid allowedValues for attribute "${attribute.name}": ${missing.join(", ")}`,
         );
+      }
+
+      for (const value of values) {
+        if (!value.isActive) {
+          throw new Error(
+            `Value "${value.value}" is inactive and cannot be connected to attribute "${attribute.name}"`,
+          );
+        }
       }
     }
   }
@@ -206,7 +232,11 @@ export const updateSubCategory = async (req, res) => {
       subCategory.category = category;
     }
 
-    if (allowedAttributes.length) {
+    if (
+      req.body.allowedAttributes !== undefined &&
+      req.body.allowedAttributes !== null &&
+      req.body.allowedAttributes !== ""
+    ) {
       await validateAllowedAttributes(allowedAttributes);
       subCategory.allowedAttributes = allowedAttributes;
     }

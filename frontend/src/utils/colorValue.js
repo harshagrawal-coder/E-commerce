@@ -1,0 +1,45 @@
+const COLOR_MAP = {
+  black: "#1f2937",
+  white: "#ffffff",
+  silver: "#c0c4cc",
+  gray: "#9ca3af",
+  grey: "#9ca3af",
+  graphite: "#4b5563",
+  navy: "#1e3a8a",
+  blue: "#3b82f6",
+  sky: "#38bdf8",
+  cyan: "#06b6d4",
+  teal: "#14b8a6",
+  green: "#22c55e",
+  emerald: "#10b981",
+  lime: "#84cc16",
+  olive: "#708238",
+  yellow: "#eab308",
+  gold: "#e6b326",
+  amber: "#f59e0b",
+  orange: "#f97316",
+  coral: "#fb7185",
+  red: "#ef4444",
+  crimson: "#dc2626",
+  maroon: "#800000",
+  rose: "#f43f5e",
+  pink: "#ec4899",
+  magenta: "#d946ef",
+  purple: "#a855f7",
+  violet: "#8b5cf6",
+  indigo: "#6366f1",
+  lavender: "#b7a6f5",
+  brown: "#92400e",
+  beige: "#e7ddc7",
+  cream: "#f5efdc",
+  champagne: "#f7e7ce",
+  mint: "#d1fae5",
+  ivory: "#fffff0",
+  bronze: "#cd7f32",
+};
+
+export function colorHex(value = "") {
+  if (!value) return null;
+  const key = String(value).trim().toLowerCase();
+  return COLOR_MAP[key] || null;
+}

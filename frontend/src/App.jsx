@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { fetchCurrentUser } from "./store/slices/authSlices";
 import { useDispatch } from "react-redux";
 import { config } from "./config/config";
@@ -18,7 +18,11 @@ const Brands = lazy(() => import("./pages/admin/Brands"));
 const Attributes = lazy(() => import("./pages/admin/Attributes"));
 const AttributeValues = lazy(() => import("./pages/admin/AttributeValues"));
 const Products = lazy(() => import("./pages/admin/Products"));
-const ProductVariants = lazy(() => import("./pages/admin/ProductVariants"));
+const ProductAdd = lazy(() => import("./pages/admin/ProductAdd"));
+const ProductEdit = lazy(() => import("./pages/admin/ProductEdit"));
+const ProductDetailsPage = lazy(() => import("./pages/admin/ProductDetailsPage"));
+const VariantAdd = lazy(() => import("./pages/admin/VariantAdd"));
+const VariantEdit = lazy(() => import("./pages/admin/VariantEdit"));
 
 function PageLoader() {
   return (
@@ -56,7 +60,12 @@ function App() {
             <Route path="attributes" element={<Attributes />} />
             <Route path="attribute-values" element={<AttributeValues />} />
             <Route path="products" element={<Products />} />
-            <Route path="variants" element={<ProductVariants />} />
+            <Route path="products/new" element={<ProductAdd />} />
+            <Route path="products/:id" element={<ProductDetailsPage />} />
+            <Route path="products/:id/edit" element={<ProductEdit />} />
+            <Route path="products/:id/variants/new" element={<VariantAdd />} />
+            <Route path="products/:id/variants/:variantId/edit" element={<VariantEdit />} />
+            <Route path="*" element={<Navigate to="/admin/products" replace />} />
           </Route>
 
           <Route path="/" element={<Login />} />

@@ -26,21 +26,24 @@ function Input({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
           className={[
-            'h-11 w-full rounded-xl border bg-white text-sm text-ink',
+            'h-11 w-full rounded-xl border bg-white/90 text-sm text-ink',
             'placeholder:text-ink-muted/60',
-            'shadow-sm transition-colors duration-200 ease-out',
-            'focus:outline-none focus:ring-2 focus:ring-offset-0',
+            'shadow-card transition-all duration-200 ease-out',
+            'focus:outline-none focus:ring-4 focus:ring-offset-0',
             icon && 'pl-10',
             error
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500/25'
-              : 'border-border hover:border-ink-muted/40 focus:border-primary-600 focus:ring-primary-600/25',
+              ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
+              : 'border-border hover:border-ink-muted/40 focus:border-primary-600 focus:ring-primary-600/15',
             className,
           ].join(' ')}
           {...props}
         />
       </div>
       {error ? (
-        <p id={`${id}-error`} className="mt-1.5 text-xs text-red-600">
+        <p
+          id={`${id}-error`}
+          className="mt-1.5 animate-fade-in text-xs font-medium text-red-600"
+        >
           {error}
         </p>
       ) : hint ? (
