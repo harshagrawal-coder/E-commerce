@@ -27,7 +27,16 @@ const emptyForm = {
   isDefault: false,
   isActive: true,
 };
+
 function AttributeValues() {
+  const [filter, setFilter] = useState({
+    search: "",
+    attribute: "",
+    isActive: "",
+    isDefault: "",
+    page: 1,
+    limit: 10,
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [formError, setFormError] = useState("");
   const [editing, setEditing] = useState(null);
@@ -42,12 +51,32 @@ function AttributeValues() {
     error,
   } = useSelector((state) => state.attributeValue);
   const { data: attributes } = useSelector((state) => state.attribute);
+  const buildQueryString = () => {
+    const params = new URLSearchParams();
+    if (filter.search.trim()) {
+      params.append("search", filter.search.trim());
+    }
+    if (filter.attribute) {
+      params.append("attribute", filter.attribute);
+    }
+    if (filter.isActive !== "") {
+      params.append("isActive", filter.isActive);
+    }
+    if (filter.isDefault !== "") {
+      params.append("isDefault", filter.isDefault);
+    }
+
+    params.append("page", filter.page);
+    params.append("limit", filter.limit);
+  };
   useEffect(() => {
-    dispatch(fetchAttributeValueData());
+    dispatch(fetchAttributeValueData(filter));
+  }, [dispatch, filter]);
+  useEffect(() => {
     if (attributes.length === 0) {
       dispatch(fetchAttributeData());
     }
-  }, [dispatch]);
+  }, [dispatch, attributes.length]);
   const openAdd = () => {
     dispatch(clearError());
     setEditing(null);
@@ -171,6 +200,78 @@ function AttributeValues() {
         }
       />
       <ErrorAlert message={formError || error} />
+      <div className="mb-5 flex flex-wrap items-end gap-3">
+        <div className="w-64">
+          <Input
+            id="search"
+            label="Search"
+            value={filter.search}
+            onChange={(e) =>
+              setFilter((prev) => ({
+                ...prev,
+                search: e.target.value,
+              }))
+            }
+            placeholder="Search value..."
+          />
+        </div>
+
+        <div className="w-52">
+          <Select
+            id="attributeFilter"
+            label="Attribute"
+            value={filter.attribute}
+            onChange={(e) =>
+              setFilter((prev) => ({
+                ...prev,
+                attribute: e.target.value,
+                page: 1,
+              }))
+            }
+            options={attributeOptions}
+            placeholder="All attributes"
+          />
+        </div>
+        <div className="w-40">
+          <Select
+            id="statusFilter"
+            label="Status"
+            value={filter.isActive}
+            onChange={(e) => {
+              setFilter((prev) => ({
+                ...prev,
+                isActive: e.target.value,
+                page: 1,
+              }));
+            }}
+            options={[
+              { value: "true", label: "Active" },
+              { value: "false", label: "Inactive" },
+            ]}
+            placeholder="All"
+          />
+        </div>
+
+        <div className="w-40">
+          <Select
+            id="defaultFilter"
+            label="Default"
+            value={filter.isDefault}
+            onChange={(e) =>
+              setFilter((prev) => ({
+                ...prev,
+                isDefault: e.target.value,
+                page: 1,
+              }))
+            }
+            options={[
+              { value: "true", label: "Default" },
+              { value: "false", label: "Not Default" },
+            ]}
+            placeholder="All"
+          />
+        </div>
+      </div>
       <DataTable
         columns={columns}
         rows={rows}

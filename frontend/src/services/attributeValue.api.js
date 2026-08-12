@@ -12,8 +12,8 @@ apiInstance.interceptors.request.use((axiosConfig) => {
   return axiosConfig;
 });
 
-const fetchAttributeValues = async () => {
-  const response = await apiInstance.get(`/attribute-value`);
+const fetchAttributeValues = async ({ params }) => {
+  const response = await apiInstance.get(`/attribute-value`, { params });
   return response.data;
 };
 const addAttributeValue = async (data) => {

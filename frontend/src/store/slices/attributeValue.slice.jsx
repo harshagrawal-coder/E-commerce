@@ -15,9 +15,11 @@ const initialState = {
 
 export const fetchAttributeValueData = createAsyncThunk(
   "attributeValue/fetchAttributeValue",
-  async (_, thunkAPI) => {
+  async (params, thunkAPI) => {
     try {
-      const response = await fetchAttributeValues();
+      const response = await fetchAttributeValues({
+        params,
+      });
       return response;
     } catch (error) {
       return thunkAPI.rejectWithValue(

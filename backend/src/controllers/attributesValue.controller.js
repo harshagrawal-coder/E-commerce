@@ -71,11 +71,11 @@ export const getAttributeValue = async (req, res) => {
       filter.attribute = attribute;
     }
     // Filter by active status
-    if (isActive !== undefined) {
+    if (isActive === "true" || isActive === "false") {
       filter.isActive = isActive === "true";
     }
     // Filter by default status
-    if (isDefault !== undefined) {
+    if (isDefault === "true" || isDefault === "false") {
       filter.isDefault = isDefault === "true";
     }
     // Pagination

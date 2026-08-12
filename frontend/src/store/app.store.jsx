@@ -5,6 +5,7 @@ import subCategoryReducer from "../store/slices/subCategorySlice";
 import brandReducer from "../store/slices/brand.slice";
 import atttributeReducer from "../store/slices/attibute.slice";
 import attributeValueReducer from "../store/slices/attributeValue.slice";
+import productReducer from "../store/slices/product.slice";
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -13,5 +14,6 @@ export const store = configureStore({
     brand: brandReducer,
     attribute: atttributeReducer,
     attributeValue: attributeValueReducer,
+    product: productReducer,
   },
 });

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
+import { useDispatch, useSelector } from 'react-redux'
 import PageHeader from '../../components/ui/PageHeader'
 import Button from '../../components/ui/Button'
 import DataTable from '../../components/ui/DataTable'
@@ -11,6 +12,15 @@ import Badge from '../../components/ui/Badge'
 import ImageUpload from '../../components/ui/ImageUpload'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import ErrorAlert from '../../components/ui/ErrorAlert'
+import {
+  fetchProductData,
+  createProduct,
+  updateProductData,
+  deleteProductData,
+} from '../../store/slices/product.slice'
+import { fetchCategory } from '../../store/slices/categorySlice'
+import { fetchSubCategoryData } from '../../store/slices/subCategorySlice'
+import { fetchbrandData } from '../../store/slices/brand.slice'
 
 const emptyForm = {
   name: '',
@@ -49,12 +59,21 @@ function PreviewImage({ file, onRemove, index }) {
   )
 }
 
+function parseVariants(json) {
+  try {
+    const variants = JSON.parse(json || '[]')
+    return Array.isArray(variants) ? variants : []
+  } catch {
+    return null
+  }
+}
+
 function Products() {
-  const rows = []
-  const categories = []
-  const subCategories = []
-  const brands = []
-  const loading = false
+  const dispatch = useDispatch()
+  const { data: rows, loading, error: storeError } = useSelector((state) => state.product)
+  const { data: categories } = useSelector((state) => state.category)
+  const { data: subCategories } = useSelector((state) => state.subCategory)
+  const { data: brands } = useSelector((state) => state.brand)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -63,6 +82,13 @@ function Products() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    dispatch(fetchProductData())
+    dispatch(fetchCategory())
+    dispatch(fetchSubCategoryData())
+    dispatch(fetchbrandData())
+  }, [dispatch])
 
   const openAdd = () => {
     setEditing(null)
@@ -95,17 +121,63 @@ function Products() {
       setError('Category, sub category and brand are required')
       return
     }
+    const variants = parseVariants(form.variantsJson)
+    if (variants === null) {
+      setError('Variants must be a valid JSON array')
+      return
+    }
     setError('')
     setSaving(true)
-    setModalOpen(false)
-    setSaving(false)
+
+    const payload = {
+      name: form.name,
+      description: form.description,
+      category: form.category,
+      subCategory: form.subCategory,
+      brand: form.brand,
+      isActive: form.isActive,
+      isFeatured: form.isFeatured,
+      ...(variants.length ? { variants } : {}),
+    }
+
+    let data = payload
+    if (images.length > 0) {
+      data = new FormData()
+      Object.entries(payload).forEach(([key, value]) => {
+        data.append(key, key === 'variants' ? JSON.stringify(value) : value)
+      })
+      images.forEach((img) => data.append('images', img))
+    }
+
+    try {
+      if (editing) {
+        await dispatch(updateProductData({ data, id: editing._id })).unwrap()
+      } else {
+        await dispatch(createProduct(data)).unwrap()
+      }
+      setModalOpen(false)
+      setEditing(null)
+      setForm(emptyForm)
+      setImages([])
+    } catch (err) {
+      setError(err)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = async () => {
     if (!deleteTarget) return
     setDeleting(true)
-    setDeleteTarget(null)
-    setDeleting(false)
+
+    try {
+      await dispatch(deleteProductData(deleteTarget._id)).unwrap()
+      setDeleteTarget(null)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const categoryOptions = categories.map((c) => ({ value: c._id, label: c.name }))
@@ -166,7 +238,7 @@ function Products() {
         }
       />
 
-      <ErrorAlert message={error} />
+      <ErrorAlert message={error || storeError} />
 
       <DataTable
         columns={columns}
@@ -215,7 +287,7 @@ function Products() {
               id="category"
               label="Category"
               value={form.category}
-              onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
+              onChange={(e) => setForm((p) => ({ ...p, category: e.target.value, subCategory: '' }))}
               options={categoryOptions}
               placeholder="Select category"
               required
@@ -247,7 +319,7 @@ function Products() {
                 <PreviewImage key={i} file={img} onRemove={() => setImages((prev) => prev.filter((_, idx) => idx !== i))} index={i} />
               ))}
               {images.length < 6 && (
-                <ImageUpload label="" value={null} onChange={(f) => f && setImages((prev) => [...prev, f])} />
+                <ImageUpload label="" onChange={(f) => f && setImages((prev) => [...prev, f])} />
               )}
             </div>
           </div>
