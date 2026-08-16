@@ -51,8 +51,8 @@ function Login() {
         navigate("/admin");
       } else if (response.user.role === "vendor") {
         navigate("/vendor");
-      }else{
-        navigate("")
+      } else {
+        navigate("");
       }
     } catch (error) {
       console.log(error);

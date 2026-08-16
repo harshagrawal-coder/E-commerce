@@ -26,3 +26,7 @@ export const deleteProduct = async (id) => {
   const response = await apiInstance.delete(`/product/${id}`);
   return response.data;
 };
+export const updateProductStatus = async ({ status, id }) => {
+  const response = await apiInstance.patch(`/product/${id}/status`, { status });
+  return response.data;
+};

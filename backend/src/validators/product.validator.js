@@ -131,3 +131,14 @@ export const updateProductValidation = [
         .optional()
         .isMongoId().withMessage("Invalid attribute value id"),
 ]
+export const updateProductStatusValidation = [
+    param("id")
+        .isMongoId().withMessage("Invalid product id"),
+    body("status")
+        .notEmpty().withMessage("Status is required")
+        .isIn(["pending", "approved", "rejected"]).withMessage("Invalid product status"),
+]
+export const deleteProductValidation = [
+    param("id")
+        .isMongoId().withMessage("Invalid product id"),
+]

@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Inbox } from 'lucide-react'
+import { Pencil, Trash2, Eye, Inbox } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 function DataTable({
@@ -6,6 +6,7 @@ function DataTable({
   rows = [],
   keyField = '_id',
   loading,
+  onView,
   onEdit,
   onDelete,
   emptyMessage,
@@ -24,7 +25,7 @@ function DataTable({
                   {col.header}
                 </th>
               ))}
-              {(onEdit || onDelete) && (
+              {(onView || onEdit || onDelete) && (
                 <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-ink-muted">
                   Actions
                 </th>
@@ -42,9 +43,20 @@ function DataTable({
                     {col.render ? col.render(row) : row[col.key] ?? '-'}
                   </td>
                 ))}
-                {(onEdit || onDelete) && (
+                {(onView || onEdit || onDelete) && (
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1">
+                      {onView && (
+                        <motion.button
+                          type="button"
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => onView(row)}
+                          aria-label="View"
+                          className="rounded-lg p-2 text-ink-muted transition-colors duration-200 hover:bg-blue-50 hover:text-blue-600"
+                        >
+                          <Eye size={16} />
+                        </motion.button>
+                      )}
                       {onEdit && (
                         <motion.button
                           type="button"
@@ -75,7 +87,7 @@ function DataTable({
             {!loading && rows.length === 0 && (
               <tr>
                 <td
-                  colSpan={columns.length + (onEdit || onDelete ? 1 : 0)}
+                  colSpan={columns.length + (onView || onEdit || onDelete ? 1 : 0)}
                   className="px-5 py-14"
                 >
                   <div className="flex flex-col items-center gap-2 text-ink-muted">

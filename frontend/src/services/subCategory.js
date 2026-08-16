@@ -14,6 +14,10 @@ export const fetchSubCategory = async () => {
   const response = await apiInstance.get(`/subcategory`);
   return response.data;
 };
+export const fetchSubCategoryByCategory = async (categoryId) => {
+  const response = await apiInstance.get(`/subcategory?category=${categoryId}`);
+  return response.data;
+};
 export const addSubCategory = async (data) => {
   const response = await apiInstance.post("/subcategory", data);
   return response.data;

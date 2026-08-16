@@ -2,17 +2,14 @@ import { useState } from 'react'
 import { NavLink, useLocation, useNavigate, useOutlet } from 'react-router-dom'
 import {
   LayoutDashboard,
-  FolderTree,
-  Layers,
-  Store,
-  Users,
-  SlidersHorizontal,
-  ListChecks,
   Package,
+  ShoppingCart,
   Menu,
   X,
   LogOut,
   ChevronRight,
+  Store,
+  Users,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import BrandLogo from '../auth/BrandLogo'
@@ -22,30 +19,21 @@ import { config } from '../../config/config'
 const navGroups = [
   {
     label: 'Overview',
-    items: [{ to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true }],
+    items: [{ to: '/vendor', label: 'Dashboard', icon: LayoutDashboard, end: true }],
   },
   {
-    label: 'Catalog',
+    label: 'Store',
     items: [
-      { to: '/admin/categories', label: 'Categories', icon: FolderTree },
-      { to: '/admin/subcategories', label: 'Sub Categories', icon: Layers },
-      { to: '/admin/brands', label: 'Brands', icon: Store },
+      { to: '/vendor/products', label: 'My Products', icon: Package },
+      { to: '/vendor/orders', label: 'Orders', icon: ShoppingCart },
     ],
   },
   {
-    label: 'Product Setup',
+    label: 'Management',
     items: [
-      { to: '/admin/attributes', label: 'Attributes', icon: SlidersHorizontal },
-      { to: '/admin/attribute-values', label: 'Attribute Values', icon: ListChecks },
+      { to: '/vendor/shop', label: 'Shop Profile', icon: Store },
+      { to: '/vendor/customers', label: 'Customers', icon: Users },
     ],
-  },
-  {
-    label: 'Products',
-    items: [{ to: '/admin/products', label: 'Products', icon: Package }],
-  },
-  {
-    label: 'Vendors',
-    items: [{ to: '/admin/vendors', label: 'Vendors', icon: Users }],
   },
 ]
 
@@ -132,7 +120,7 @@ function SidebarContent({ onNavigate }) {
   )
 }
 
-function AdminLayout() {
+function VendorLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
   const outlet = useOutlet()
@@ -197,9 +185,9 @@ function AdminLayout() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-ink-muted sm:block">Admin</span>
+            <span className="hidden text-sm text-ink-muted sm:block">Vendor</span>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-sm font-semibold text-white shadow-primary">
-              A
+              V
             </div>
           </div>
         </header>
@@ -224,4 +212,4 @@ function AdminLayout() {
   )
 }
 
-export default AdminLayout
+export default VendorLayout

@@ -7,12 +7,14 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import Modal from "../../components/ui/Modal";
 import ErrorAlert from "../../components/ui/ErrorAlert";
 import ProductTable from "../../components/products/ProductTable";
 import PageTransition from "../../components/ui/PageTransition";
 import {
   fetchProductData,
   deleteProductData,
+  updateProductStatusData,
   clearError,
 } from "../../store/slices/product.slice";
 import { fetchCategory } from "../../store/slices/categorySlice";
@@ -33,6 +35,7 @@ function Products() {
   const [filters, setFilters] = useState(emptyFilters);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [statusTarget, setStatusTarget] = useState(null);
 
   useEffect(() => {
     dispatch(fetchProductData());
@@ -66,8 +69,7 @@ function Products() {
       if (filters.subCategory && (p.subCategory?._id ?? p.subCategory) !== filters.subCategory)
         return false;
       if (filters.brand && (p.brand?._id ?? p.brand) !== filters.brand) return false;
-      if (filters.status === "active" && !p.isActive) return false;
-      if (filters.status === "inactive" && p.isActive) return false;
+      if (filters.status && p.status !== filters.status) return false;
       return true;
     });
   }, [products, filters]);
@@ -86,6 +88,25 @@ function Products() {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const handleStatusChange = async () => {
+    if (!statusTarget) return;
+    try {
+      await dispatch(
+        updateProductStatusData({ status: statusTarget.status, id: statusTarget._id }),
+      ).unwrap();
+      setStatusTarget(null);
+      showToast(
+        `"${statusTarget.name}" ${statusTarget.status === "approved" ? "approved" : "rejected"}`,
+      );
+    } catch (err) {
+      showToast(err || "Failed to update product status", "error");
+    }
+  };
+
+  const requestStatusChange = (product, status) => {
+    setStatusTarget({ _id: product._id, name: product.name, status });
   };
 
   return (
@@ -149,10 +170,12 @@ function Products() {
               value={filters.status}
               onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
               options={[
-                { value: "active", label: "Active" },
-                { value: "inactive", label: "Inactive" },
+                { value: "pending", label: "Pending" },
+                { value: "approved", label: "Approved" },
+                { value: "rejected", label: "Rejected" },
+                { value: "draft", label: "Draft" },
               ]}
-              placeholder="All statuses"
+              placeholder="All approval statuses"
             />
           </div>
           {hasActiveFilters && (
@@ -180,6 +203,8 @@ function Products() {
           onEdit={(p) => navigate(`/admin/products/${p._id}/edit`)}
           onManageVariants={(p) => navigate(`/admin/products/${p._id}`)}
           onDelete={setDeleteTarget}
+          onApprove={(p) => requestStatusChange(p, "approved")}
+          onReject={(p) => requestStatusChange(p, "rejected")}
         />
 
         <ConfirmDialog
@@ -190,6 +215,38 @@ function Products() {
           title="Delete product"
           message={`Are you sure you want to delete "${deleteTarget?.name}"? Its variants and images will also be deleted. This cannot be undone.`}
         />
+
+        <Modal
+          open={!!statusTarget}
+          onClose={() => setStatusTarget(null)}
+          title={`${statusTarget?.status === "approved" ? "Approve" : "Reject"} product`}
+          size="sm"
+          footer={
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => setStatusTarget(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant={statusTarget?.status === "rejected" ? "danger" : "primary"}
+                onClick={handleStatusChange}
+                loading={deleting}
+                disabled={deleting}
+              >
+                {deleting ? "Updating..." : "Confirm"}
+              </Button>
+            </>
+          }
+        >
+          <p className="text-sm text-ink-muted">
+            {statusTarget?.status === "approved"
+              ? `Approve "${statusTarget?.name}"? It will become visible to customers.`
+              : `Reject "${statusTarget?.name}"? It will be removed from the storefront.`}
+          </p>
+        </Modal>
       </div>
     </PageTransition>
   );

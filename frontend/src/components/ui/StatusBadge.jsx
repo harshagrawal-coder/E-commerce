@@ -39,6 +39,21 @@ const statusStyles = {
     classes: "bg-slate-100 text-slate-600 border-slate-200",
     icon: "ban",
   },
+  pending: {
+    dot: "bg-amber-500",
+    classes: "bg-amber-50 text-amber-700 border-amber-200",
+    icon: "alert",
+  },
+  approved: {
+    dot: "bg-emerald-500",
+    classes: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    icon: "check",
+  },
+  rejected: {
+    dot: "bg-red-500",
+    classes: "bg-red-50 text-red-700 border-red-200",
+    icon: "ban",
+  },
 };
 
 function StatusBadge({ status = "active", label, children, className = "" }) {

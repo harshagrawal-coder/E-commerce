@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 import {
   fetchSubCategory,
+  fetchSubCategoryByCategory,
   addSubCategory,
   updateSubCategory,
   deleteSubCategory,
@@ -9,7 +10,9 @@ import {
 
 const initialState = {
   data: [],
+  byCategory: [],
   loading: false,
+  byCategoryLoading: false,
   error: null,
 };
 export const fetchSubCategoryData = createAsyncThunk(
@@ -17,6 +20,19 @@ export const fetchSubCategoryData = createAsyncThunk(
   async (_, thunkAPI) => {
     try {
       const response = await fetchSubCategory();
+      return response;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Something went wrong"
+      );
+    }
+  }
+);
+export const fetchSubCategoryByCategoryData = createAsyncThunk(
+  "subCategory/fetchSubCategoryByCategory",
+  async (categoryId, thunkAPI) => {
+    try {
+      const response = await fetchSubCategoryByCategory(categoryId);
       return response;
     } catch (error) {
       return thunkAPI.rejectWithValue(
@@ -96,6 +112,20 @@ const subCategorySlice = createSlice({
         state.loading = false;
         state.error =
           action.payload || "Something went wrong";
+      })
+      .addCase(fetchSubCategoryByCategoryData.pending, (state) => {
+        state.byCategoryLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchSubCategoryByCategoryData.fulfilled, (state, action) => {
+        state.byCategoryLoading = false;
+        state.error = null;
+        state.byCategory = action.payload?.data || [];
+      })
+      .addCase(fetchSubCategoryByCategoryData.rejected, (state, action) => {
+        state.byCategoryLoading = false;
+        state.byCategory = [];
+        state.error = action.payload || "Something went wrong";
       })
       .addCase(createSubCategory.pending, (state) => {
         state.loading = true;

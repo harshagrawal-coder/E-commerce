@@ -1,13 +1,16 @@
 import Router from "express";
-import { createVendor, getVendor } from "../controllers/vendorController.js";
+import {
+  createVendor,
+  getVendor,
+  updateVendor,
+} from "../controllers/vendorController.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import authorize from "../middleware/roles.middleware.js";
 import upload from "../services/multer.js";
 import {
   createVendorValidation,
-  updateVendorStatusValidation,
   validate,
-  updateVendorStatusValidation,
+  updateVendorValidation,
 } from "../validators/vendor.validator.js";
 const vendorRouter = Router();
 vendorRouter.post(
@@ -19,4 +22,15 @@ vendorRouter.post(
   validate,
   createVendor,
 );
-vendorRouter.get("/", authMiddleware, authorize("vendor"), getVendor);
+vendorRouter.get("/profile", authMiddleware, authorize("vendor"), getVendor);
+vendorRouter.put(
+  "/:id",
+  authMiddleware,
+  authorize("vendor"),
+  upload.single("image"),
+  updateVendorValidation,
+  validate,
+  updateVendor,
+);
+
+export default vendorRouter;

@@ -66,6 +66,11 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    status: {
+      type: String,
+      enum: ["draft", "pending", "approved", "rejected"],
+      default: "pending",
+    },
   },
   {
     timestamps: true,

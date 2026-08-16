@@ -113,5 +113,143 @@ export const getVendor = async (req, res) => {
   }
 };
 export const updateVendor = async (req, res) => {
-  const {} = req.body   ;
+  let uploadedFileId = null;
+  try {
+    const {
+      businessName,
+      businessType,
+      description,
+      address,
+      phone,
+      isActive,
+    } = req.body;
+    const vendorId = req.params.id;
+    const userId = req.user._id;
+
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
+    }
+
+    if (vendor.user.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to update this vendor profile",
+      });
+    }
+
+    if (req.file) {
+      if (vendor.image.fileId) {
+        try {
+          await deleteFile(vendor.image.fileId);
+        } catch (deleteError) {
+          console.error(
+            "Failed to delete old vendor image:",
+            deleteError.message,
+          );
+        }
+      }
+
+      const uploadedImage = await uploadFile({
+        file: req.file.buffer,
+        fileName: req.file.originalname,
+        folder: "/vendors",
+      });
+      uploadedFileId = uploadedImage.file.fileId;
+      vendor.image = {
+        url: uploadedImage.file.url,
+        alt: businessName || vendor.businessName,
+        fileId: uploadedImage.file.fileId,
+      };
+    }
+
+    if (businessName !== undefined) vendor.businessName = businessName;
+    if (businessType !== undefined) vendor.businessType = businessType;
+    if (description !== undefined) vendor.description = description;
+    if (address !== undefined) vendor.address = address;
+    if (phone !== undefined) vendor.phone = phone;
+    if (isActive !== undefined) vendor.isActive = isActive;
+
+    await vendor.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Vendor updated successfully",
+      data: vendor,
+    });
+  } catch (error) {
+    if (uploadedFileId) {
+      try {
+        await deleteFile(uploadedFileId);
+      } catch (deleteError) {
+        console.error(
+          "Failed to delete uploaded vendor image:",
+          deleteError.message,
+        );
+      }
+    }
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const updateVendorStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const vendorId = req.params.id;
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
+    }
+    vendor.status = status;
+    await vendor.save();
+    return res.status(200).json({
+      success: true,
+      message: "Vendor status updated successfully",
+      data: vendor,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+export const getAllVendors = async (req, res) => {
+  try {
+    const vendors = await Vendor.find().populate("user", "name email role");
+    return res.status(200).json({
+      success: true,
+      message: "fetched the all vendor",
+      data: vendors,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+export const getVendorDetail = async (req, res) => {
+  const { id } = req.params;
+  const vendor = await Vendor.findById(id).populate("user", "name email role");
+  if (!vendor) {
+    return res.status(404).json({
+      success: false,
+      message: "vendor not found ",
+    });
+  }
+  return res.status(200).json({
+    success: true,
+    message: "vendor details fetched ",
+    data: vendor,
+  });
 };

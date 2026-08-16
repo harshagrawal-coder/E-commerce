@@ -12,8 +12,8 @@ import ProductImageUploader from "./ProductImageUploader";
 import AttributeIcon from "./AttributeIcon";
 import { colorHex } from "../../utils/colorValue";
 import { fetchCategory } from "../../store/slices/categorySlice";
-import { fetchSubCategoryData } from "../../store/slices/subCategorySlice";
 import { fetchbrandData } from "../../store/slices/brand.slice";
+import { fetchSubCategoryByCategoryData } from "../../store/slices/subCategorySlice";
 
 const emptyForm = {
   name: "",
@@ -47,12 +47,14 @@ function mapImages(product) {
     fileId: img.fileId,
   }));
 }
-
 function ProductForm({ mode = "create", initialValues, onSubmit, onCancel, submitting, error }) {
   const dispatch = useDispatch();
   const { data: categories } = useSelector((state) => state.category);
-  const { data: subCategories } = useSelector((state) => state.subCategory);
   const { data: brands } = useSelector((state) => state.brand);
+  const {
+    byCategory: subCategories,
+    byCategoryLoading: subCategoryLoading,
+  } = useSelector((state) => state.subCategory);
 
   const [form, setForm] = useState(() => mapInitial(initialValues));
   const [images, setImages] = useState(() => mapImages(initialValues));
@@ -60,14 +62,14 @@ function ProductForm({ mode = "create", initialValues, onSubmit, onCancel, submi
 
   useEffect(() => {
     dispatch(fetchCategory());
-    dispatch(fetchSubCategoryData());
     dispatch(fetchbrandData());
   }, [dispatch]);
 
-  const filteredSubCategories = useMemo(
-    () => subCategories.filter((s) => (s.category?._id ?? s.category) === form.category),
-    [subCategories, form.category],
-  );
+  useEffect(() => {
+    if (form.category) {
+      dispatch(fetchSubCategoryByCategoryData(form.category));
+    }
+  }, [dispatch, form.category]);
 
   const selectedSubCategory = useMemo(
     () => subCategories.find((s) => s._id === form.subCategory),
@@ -181,10 +183,16 @@ function ProductForm({ mode = "create", initialValues, onSubmit, onCancel, submi
                 label="Sub Category"
                 value={form.subCategory}
                 onChange={(e) => setField("subCategory", e.target.value)}
-                options={filteredSubCategories.map((s) => ({ value: s._id, label: s.name }))}
-                placeholder={form.category ? "Select sub category" : "Select a category first"}
+                options={subCategories.map((s) => ({ value: s._id, label: s.name }))}
+                placeholder={
+                  subCategoryLoading
+                    ? "Loading sub categories…"
+                    : form.category
+                      ? "Select sub category"
+                      : "Select a category first"
+                }
                 error={errors.subCategory}
-                disabled={!form.category}
+                disabled={!form.category || subCategoryLoading}
                 required
               />
             </div>

@@ -4,6 +4,7 @@ import {
   addProduct,
   updateProduct,
   deleteProduct,
+  updateProductStatus,
 } from "../../services/product.api";
 const initialState = {
   data: [],
@@ -61,6 +62,19 @@ export const deleteProductData = createAsyncThunk(
         ...response,
         id,
       };
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Something went wrong",
+      );
+    }
+  },
+);
+export const updateProductStatusData = createAsyncThunk(
+  "product/updateStatus",
+  async ({ status, id }, thunkAPI) => {
+    try {
+      const response = await updateProductStatus({ status, id });
+      return response;
     } catch (error) {
       return thunkAPI.rejectWithValue(
         error.response?.data?.message || "Something went wrong",
@@ -139,6 +153,23 @@ const productSlice = createSlice({
         );
       })
       .addCase(deleteProductData.rejected, (state, action) => {
+        state.saving = false;
+        state.error = action.payload || "Something went wrong";
+      })
+      .addCase(updateProductStatusData.pending, (state) => {
+        state.saving = true;
+        state.error = null;
+      })
+      .addCase(updateProductStatusData.fulfilled, (state, action) => {
+        state.saving = false;
+        state.error = null;
+        const updated = action.payload.data;
+        const index = state.data.findIndex((p) => p._id === updated._id);
+        if (index !== -1) {
+          state.data[index] = { ...state.data[index], ...updated };
+        }
+      })
+      .addCase(updateProductStatusData.rejected, (state, action) => {
         state.saving = false;
         state.error = action.payload || "Something went wrong";
       });

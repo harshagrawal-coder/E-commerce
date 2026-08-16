@@ -158,7 +158,11 @@ export const addSubCategory = async (req, res) => {
   }
 };
 export const getSubCategory = async (req, res) => {
-  const subCategories = await SubCategory.find()
+  const filter = {};
+  if (req.query.category) {
+    filter.category = req.query.category;
+  }
+  const subCategories = await SubCategory.find(filter)
     .populate("category", "name slug")
     .populate({
       path: "allowedAttributes.attribute",

@@ -7,6 +7,9 @@ import atttributeReducer from "../store/slices/attibute.slice";
 import attributeValueReducer from "../store/slices/attributeValue.slice";
 import productReducer from "../store/slices/product.slice";
 import variantReducer from "../store/slices/variant.slice";
+import vendorReducer from "../store/slices/vendor.slice";
+import adminVendorReducer from "../store/slices/adminVendor.slice";
+import vendorProductReducer from "../store/slices/vendorProduct.slice";
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -17,5 +20,8 @@ export const store = configureStore({
     attributeValue: attributeValueReducer,
     product: productReducer,
     variant: variantReducer,
+    vendor: vendorReducer,
+    adminVendor: adminVendorReducer,
+    vendorProduct: vendorProductReducer,
   },
 });
