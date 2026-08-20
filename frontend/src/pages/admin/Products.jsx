@@ -199,6 +199,7 @@ function Products() {
         <ProductTable
           products={filteredProducts}
           loading={loading}
+          showVendor
           onView={(p) => navigate(`/admin/products/${p._id}`)}
           onEdit={(p) => navigate(`/admin/products/${p._id}/edit`)}
           onManageVariants={(p) => navigate(`/admin/products/${p._id}`)}

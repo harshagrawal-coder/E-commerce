@@ -2,7 +2,18 @@ import { Trash2 } from 'lucide-react'
 import Modal from './Modal'
 import Button from './Button'
 
-function ConfirmDialog({ open, onClose, onConfirm, title, message, loading = false }) {
+function ConfirmDialog({
+  open,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  loading = false,
+  confirmLabel = 'Delete',
+  loadingLabel = 'Deleting...',
+  confirmIcon: ConfirmIcon = Trash2,
+  confirmVariant = 'danger',
+}) {
   return (
     <Modal
       open={open}
@@ -14,9 +25,9 @@ function ConfirmDialog({ open, onClose, onConfirm, title, message, loading = fal
           <Button variant="secondary" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={onConfirm} loading={loading} disabled={loading}>
-            {!loading && <Trash2 size={16} />}
-            {loading ? 'Deleting...' : 'Delete'}
+          <Button variant={confirmVariant} onClick={onConfirm} loading={loading} disabled={loading}>
+            {!loading && <ConfirmIcon size={16} />}
+            {loading ? loadingLabel : confirmLabel}
           </Button>
         </>
       }

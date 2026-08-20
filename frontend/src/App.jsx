@@ -23,6 +23,7 @@ const ProductEdit = lazy(() => import("./pages/admin/ProductEdit"));
 const ProductDetailsPage = lazy(() => import("./pages/admin/ProductDetailsPage"));
 const VariantAdd = lazy(() => import("./pages/admin/VariantAdd"));
 const VariantEdit = lazy(() => import("./pages/admin/VariantEdit"));
+const PendingVariants = lazy(() => import("./pages/admin/PendingVariants"));
 const Vendors = lazy(() => import("./pages/admin/Vendors"));
 const VendorDetails = lazy(() => import("./pages/admin/VendorDetails"));
 const VendorLayout = lazy(() => import("./components/vendor/VendorLayout"));
@@ -30,6 +31,13 @@ const VendorDashboard = lazy(() => import("./pages/vendor/VendorDashboard"));
 const VendorProducts = lazy(() => import("./pages/vendor/VendorProducts"));
 const VendorProductAdd = lazy(() => import("./pages/vendor/VendorProductAdd"));
 const VendorProductEdit = lazy(() => import("./pages/vendor/VendorProductEdit"));
+const VendorProductDetailsPage = lazy(() =>
+  import("./pages/vendor/VendorProductDetailsPage"),
+);
+const VendorVariantAdd = lazy(() => import("./pages/vendor/VendorVariantAdd"));
+const VendorVariantEdit = lazy(() =>
+  import("./pages/vendor/VendorVariantEdit"),
+);
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, isAuthenticated, isInitialized } = useSelector((state) => state.auth);
@@ -105,6 +113,7 @@ function App() {
             <Route path="products/:id/edit" element={<ProductEdit />} />
             <Route path="products/:id/variants/new" element={<VariantAdd />} />
             <Route path="products/:id/variants/:variantId/edit" element={<VariantEdit />} />
+            <Route path="variants/pending" element={<PendingVariants />} />
             <Route path="*" element={<Navigate to="/admin/products" replace />} />
           </Route>
 
@@ -116,7 +125,13 @@ function App() {
             <Route index element={<VendorDashboard />} />
             <Route path="products" element={<VendorProducts />} />
             <Route path="products/new" element={<VendorProductAdd />} />
+            <Route path="products/:id" element={<VendorProductDetailsPage />} />
             <Route path="products/:id/edit" element={<VendorProductEdit />} />
+            <Route path="products/:id/variants/new" element={<VendorVariantAdd />} />
+            <Route
+              path="products/:id/variants/:variantId/edit"
+              element={<VendorVariantEdit />}
+            />
             <Route path="*" element={<Navigate to="/vendor" replace />} />
           </Route>
 

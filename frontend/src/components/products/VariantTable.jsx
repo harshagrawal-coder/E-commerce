@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Boxes, Plus } from "lucide-react";
+import { Pencil, Trash2, Boxes, Plus, Check, X } from "lucide-react";
 import { motion } from "framer-motion";
 import StatusBadge from "../ui/StatusBadge";
 import EmptyState from "../ui/EmptyState";
@@ -75,6 +75,8 @@ function VariantTable({
   onEdit,
   onDelete,
   onAddFirst,
+  onApprove,
+  onReject,
 }) {
   if (loading) return <TableSkeleton columns={8} rows={5} />;
 
@@ -96,7 +98,7 @@ function VariantTable({
         />
       ) : (
         <div className="max-h-[calc(100vh-24rem)] overflow-auto">
-          <table className="w-full min-w-[880px] text-left text-sm">
+          <table className="w-full min-w-[960px] text-left text-sm">
             <thead>
               <tr className="sticky top-0 z-10 border-b border-border bg-surface/95 shadow-[0_1px_0_0_rgba(16,24,40,0.05)] backdrop-blur-sm">
                 {[
@@ -106,7 +108,8 @@ function VariantTable({
                   "Selling Price",
                   "MRP",
                   "Stock",
-                  "Status",
+                  "Active",
+                  "Approval",
                   "Default",
                 ].map((h) => (
                   <th
@@ -124,6 +127,7 @@ function VariantTable({
             <tbody>
               {variants.map((variant) => {
                 const stock = stockMeta(variant);
+                const approval = variant.status || "approved";
                 return (
                   <tr
                     key={variant._id}
@@ -170,6 +174,11 @@ function VariantTable({
                       </StatusBadge>
                     </td>
                     <td className="px-5 py-4">
+                      <StatusBadge status={approval}>
+                        {approval.charAt(0).toUpperCase() + approval.slice(1)}
+                      </StatusBadge>
+                    </td>
+                    <td className="px-5 py-4">
                       {variant.isDefault ? (
                         <StatusBadge status="default" label="Default" />
                       ) : (
@@ -178,6 +187,32 @@ function VariantTable({
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-0.5">
+                        {onApprove &&
+                          onReject &&
+                          approval === "pending" && (
+                            <>
+                              <motion.button
+                                type="button"
+                                whileTap={{ scale: 0.88 }}
+                                onClick={() => onApprove(variant)}
+                                aria-label="Approve variant"
+                                title="Approve"
+                                className="rounded-lg p-2 text-ink-muted transition-colors duration-200 hover:bg-emerald-50 hover:text-emerald-600"
+                              >
+                                <Check size={16} />
+                              </motion.button>
+                              <motion.button
+                                type="button"
+                                whileTap={{ scale: 0.88 }}
+                                onClick={() => onReject(variant)}
+                                aria-label="Reject variant"
+                                title="Reject"
+                                className="rounded-lg p-2 text-ink-muted transition-colors duration-200 hover:bg-red-50 hover:text-red-600"
+                              >
+                                <X size={16} />
+                              </motion.button>
+                            </>
+                          )}
                         <motion.button
                           type="button"
                           whileTap={{ scale: 0.88 }}

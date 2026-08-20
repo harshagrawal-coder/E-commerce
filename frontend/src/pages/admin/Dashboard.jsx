@@ -44,7 +44,10 @@ function Dashboard() {
     subCategories: subCategory.data.length,
     brands: brand.data.length,
     products: product.data.length,
-    variants: product.data.reduce((sum, p) => sum + (p.variants?.length || 0), 0),
+    variants: product.data.reduce(
+      (sum, p) => sum + (p.variantsCount ?? p.variants?.length ?? 0),
+      0,
+    ),
     attributes: attribute.data.length,
     attributeValues: attributeValue.data.length,
   }

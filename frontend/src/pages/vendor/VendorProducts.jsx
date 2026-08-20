@@ -16,9 +16,7 @@ import {
   clearError,
 } from "../../store/slices/vendorProduct.slice";
 import { showToast } from "../../utils/toast";
-
 const emptyFilters = { search: "", status: "" };
-
 function VendorProducts() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -28,7 +26,6 @@ function VendorProducts() {
 
   const [filters, setFilters] = useState(emptyFilters);
   const [deleteTarget, setDeleteTarget] = useState(null);
-
   useEffect(() => {
     dispatch(fetchVendorProductData());
     return () => dispatch(clearError());
@@ -134,7 +131,7 @@ function VendorProducts() {
         <ProductTable
           products={filteredProducts}
           loading={loading}
-          onView={(p) => navigate(`/vendor/products/${p._id}/edit`)}
+          onView={(p) => navigate(`/vendor/products/${p._id}`)}
           onEdit={(p) => navigate(`/vendor/products/${p._id}/edit`)}
           onDelete={setDeleteTarget}
         />

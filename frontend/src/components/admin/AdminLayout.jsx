@@ -41,7 +41,10 @@ const navGroups = [
   },
   {
     label: 'Products',
-    items: [{ to: '/admin/products', label: 'Products', icon: Package }],
+    items: [
+      { to: '/admin/products', label: 'Products', icon: Package },
+      { to: '/admin/variants/pending', label: 'Pending Variants', icon: ListChecks },
+    ],
   },
   {
     label: 'Vendors',

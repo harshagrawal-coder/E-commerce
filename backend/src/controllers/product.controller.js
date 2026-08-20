@@ -203,10 +203,23 @@ export const getAllProducts = async (req, res) => {
       .populate("subCategory", "name")
       .populate("brand", "name");
 
+    const variantCounts = await ProductVariant.aggregate([
+      { $group: { _id: "$product", count: { $sum: 1 } } },
+    ]);
+
+    const countMap = new Map(
+      variantCounts.map((c) => [String(c._id), c.count]),
+    );
+
+    const data = products.map((product) => ({
+      ...product.toObject(),
+      variantsCount: countMap.get(String(product._id)) || 0,
+    }));
+
     return res.status(200).json({
       success: true,
       message: "Products fetched successfully",
-      data: products,
+      data,
     });
   } catch (error) {
     return res.status(500).json({
@@ -271,11 +284,9 @@ export const updateProduct = async (req, res) => {
           message: "Product already exists",
         });
       }
-
       product.name = name;
       product.slug = slug;
     }
-
     if (description !== undefined) {
       product.description = description;
     }

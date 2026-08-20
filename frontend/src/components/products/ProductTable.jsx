@@ -1,4 +1,4 @@
-import { Eye, Pencil, Trash2, Boxes, Package, Star, Check, X } from "lucide-react";
+import { Eye, Pencil, Trash2, Boxes, Package, Star, Check, X, Store } from "lucide-react";
 import { motion } from "framer-motion";
 import StatusBadge from "../ui/StatusBadge";
 import EmptyState from "../ui/EmptyState";
@@ -46,8 +46,12 @@ function ActionButton({ icon: Icon, onClick, label, tone = "default", title }) {
   );
 }
 
-function ProductTable({ products = [], loading, onView, onEdit, onDelete, onManageVariants, onApprove, onReject }) {
+function ProductTable({ products = [], loading, onView, onEdit, onDelete, onManageVariants, onApprove, onReject, showVendor = false }) {
   if (loading) return <TableSkeleton columns={9} rows={6} />;
+
+  const headers = ["Product", "Category", "Brand"];
+  if (showVendor) headers.push("Vendor");
+  headers.push("Variants", "Approval", "Featured", "Created");
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-card">
@@ -62,7 +66,7 @@ function ProductTable({ products = [], loading, onView, onEdit, onDelete, onMana
           <table className="w-full min-w-[960px] text-left text-sm">
             <thead>
               <tr className="sticky top-0 z-10 border-b border-border bg-surface/95 shadow-[0_1px_0_0_rgba(16,24,40,0.05)] backdrop-blur-sm">
-                {["Product", "Category", "Brand", "Variants", "Approval", "Featured", "Created"].map((h) => (
+                {headers.map((h) => (
                   <th
                     key={h}
                     className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-muted"
@@ -104,10 +108,20 @@ function ProductTable({ products = [], loading, onView, onEdit, onDelete, onMana
                   <td className="px-5 py-4">
                     <span className="text-ink">{getName(product.brand) || "-"}</span>
                   </td>
+                  {showVendor && (
+                    <td className="px-5 py-4">
+                      <span className="inline-flex items-center gap-1.5 text-ink">
+                        <Store size={14} className="shrink-0 text-ink-muted" />
+                        <span className="max-w-[160px] truncate">
+                          {product.vendor?.businessName || product.vendor || "-"}
+                        </span>
+                      </span>
+                    </td>
+                  )}
                   <td className="px-5 py-4">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-2.5 py-1 text-xs font-semibold text-primary shadow-card">
                       <Boxes size={12} />
-                      {(product.variants?.length || 0)}
+                      {product.variantsCount ?? product.variants?.length ?? 0}
                     </span>
                   </td>
                   <td className="px-5 py-4">

@@ -53,9 +53,14 @@ const productVariantSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 export default mongoose.model("ProductVariant", productVariantSchema);

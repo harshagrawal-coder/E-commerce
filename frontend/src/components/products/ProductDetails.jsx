@@ -13,6 +13,8 @@ import {
   FolderTree,
   Layers,
   LayoutGrid,
+  Check,
+  X,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Button from "../ui/Button";
@@ -22,8 +24,9 @@ import EmptyState from "../ui/EmptyState";
 import VariantTable from "./VariantTable";
 import { formatDate, getName } from "../../utils/format";
 
-function ProductHeader({ product, onEdit, onDelete, onAddVariant }) {
+function ProductHeader({ product, onEdit, onDelete, onAddVariant, onStatusChange }) {
   const image = product.images?.[0]?.url;
+  const status = product.status || "pending";
   return (
     <div className="glass-card relative overflow-hidden rounded-3xl shadow-float">
       <div
@@ -55,11 +58,20 @@ function ProductHeader({ product, onEdit, onDelete, onAddVariant }) {
                   Featured
                 </span>
               )}
-              <StatusBadge status={product.isActive ? "active" : "inactive"}>
-                {product.isActive ? "Active" : "Inactive"}
+              <StatusBadge status={status}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
               </StatusBadge>
             </div>
             <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-sm text-ink-muted">
+              {product.vendor?.businessName && (
+                <>
+                  <span className="inline-flex items-center gap-1 font-semibold text-ink">
+                    <Store size={14} />
+                    {product.vendor.businessName}
+                  </span>
+                  <ChevronRight size={13} className="text-ink-light" />
+                </>
+              )}
               <span className="font-semibold text-ink">{getName(product.brand) || "—"}</span>
               <ChevronRight size={13} className="text-ink-light" />
               <span>{getName(product.category) || "—"}</span>
@@ -72,6 +84,22 @@ function ProductHeader({ product, onEdit, onDelete, onAddVariant }) {
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+          {onStatusChange && (
+            <>
+              {status !== "approved" && (
+                <Button size="sm" variant="primary" onClick={() => onStatusChange("approved")}>
+                  <Check size={16} />
+                  Approve
+                </Button>
+              )}
+              {status !== "rejected" && (
+                <Button size="sm" variant="danger" onClick={() => onStatusChange("rejected")}>
+                  <X size={16} />
+                  Reject
+                </Button>
+              )}
+            </>
+          )}
           <Button variant="secondary" onClick={onEdit}>
             <Pencil size={16} />
             Edit Product
@@ -108,6 +136,7 @@ function ProductInformation({ product }) {
   return (
     <Card title="Product Information" description="Core details about this product" icon={Info} className="h-full">
       <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
+        <InfoRow icon={Store} label="Vendor" value={product.vendor?.businessName || "-"} />
         <InfoRow icon={Store} label="Brand" value={getName(product.brand, "-")} />
         <InfoRow icon={FolderTree} label="Category" value={getName(product.category, "-")} />
         <InfoRow icon={Layers} label="Sub Category" value={getName(product.subCategory, "-")} />
@@ -180,6 +209,9 @@ function ProductDetails({
   onAddVariant,
   onEditVariant,
   onDeleteVariant,
+  onStatusChange,
+  onApproveVariant,
+  onRejectVariant,
 }) {
   const [tab, setTab] = useState("overview");
   const variantCount = variants.length;
@@ -192,6 +224,7 @@ function ProductDetails({
         onEdit={onEdit}
         onDelete={onDelete}
         onAddVariant={onAddVariant}
+        onStatusChange={onStatusChange}
       />
 
       {/* Tab bar */}
@@ -261,6 +294,8 @@ function ProductDetails({
             onEdit={onEditVariant}
             onDelete={onDeleteVariant}
             onAddFirst={onAddVariant}
+            onApprove={onApproveVariant}
+            onReject={onRejectVariant}
           />
         </Card>
       )}
